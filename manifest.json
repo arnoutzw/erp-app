@@ -1,0 +1,24 @@
+{
+  "name": "ForgeERP — Engineering & Prototyping",
+  "short_name": "ForgeERP",
+  "description": "ERP system for engineering design and prototype manufacturing",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='32' fill='%2309090b'/%3E%3Crect x='32' y='32' width='128' height='128' rx='20' fill='%23f59e0b'/%3E%3Cpath d='M72 76 L96 60 L120 76 L120 116 L96 132 L72 116Z' fill='%2309090b' stroke='%2309090b' stroke-width='4'/%3E%3Cpath d='M96 60 L96 132' stroke='%23f59e0b' stroke-width='3'/%3E%3Cpath d='M72 76 L120 116' stroke='%23f59e0b' stroke-width='3'/%3E%3Cpath d='M120 76 L72 116' stroke='%23f59e0b' stroke-width='3'/%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%2309090b'/%3E%3Crect x='80' y='80' width='352' height='352' rx='48' fill='%23f59e0b'/%3E%3Cpath d='M192 200 L256 160 L320 200 L320 312 L256 352 L192 312Z' fill='%2309090b' stroke='%2309090b' stroke-width='8'/%3E%3Cpath d='M256 160 L256 352' stroke='%23f59e0b' stroke-width='6'/%3E%3Cpath d='M192 200 L320 312' stroke='%23f59e0b' stroke-width='6'/%3E%3Cpath d='M320 200 L192 312' stroke='%23f59e0b' stroke-width='6'/%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "en"
+}

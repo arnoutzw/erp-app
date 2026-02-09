@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ForgeERP — Engineering & Prototyping</title>
+<meta name="description" content="ERP system for engineering design and prototype manufacturing">
+<meta name="theme-color" content="#09090b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace']
+      }
+    }
+  }
+}
+</script>
+<style>
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #18181b; }
+::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #52525b; }
+html, body { margin: 0; padding: 0; overflow: hidden; height: 100%; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.sidebar-link.active { background: rgba(245, 158, 11, 0.1); color: #f59e0b; border-right: 2px solid #f59e0b; }
+.sidebar-link:hover:not(.active) { background: #27272a; }
+.chart-container { position: relative; height: 220px; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.fade-in { animation: fadeIn 0.3s ease-out; }
+.modal-overlay { display: none; }
+.modal-overlay.open { display: flex; }
+input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.7); }
+select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
+.progress-bar { transition: width 0.6s ease; }
+</style>
+</head>
+<body class="bg-zinc-950 font-sans text-zinc-300 text-sm h-full">
+<div class="flex h-full">
+
+<!-- Sidebar -->
+<aside id="sidebar" class="w-60 bg-zinc-900 border-r border-zinc-800 flex flex-col flex-shrink-0 h-full overflow-y-auto">
+  <div class="p-4 border-b border-zinc-800">
+    <div class="flex items-center gap-2">
+      <div class="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center">
+        <i data-lucide="anvil" class="w-5 h-5 text-zinc-900"></i>
+      </div>
+      <div>
+        <h1 class="font-mono font-bold text-amber-500 text-sm leading-tight">ForgeERP</h1>
+        <p class="text-[10px] text-zinc-500 font-mono">Engineering & Prototyping</p>
+      </div>
+    </div>
+  </div>
+  <nav class="flex-1 py-2">
+    <div class="px-3 py-2 text-[10px] font-mono text-zinc-600 uppercase tracking-wider">Overview</div>
+    <a href="#" class="sidebar-link active flex items-center gap-3 px-4 py-2.5 text-zinc-400 transition-colors cursor-pointer" data-tab="dashboard">
+      <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Dashboard
+    </a>
+    <div class="px-3 py-2 mt-2 text-[10px] font-mono text-zinc-600 uppercase tracking-wider">Engineering</div>
+    <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-2.5 text-zinc-400 transition-colors cursor-pointer" data-tab="projects">
+      <i data-lucide="folder-kanban" class="w-4 h-4"></i> Projects
+    </a>
+    <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-2.5 text-zinc-400 transition-colors cursor-pointer" data-tab="bom">
+      <i data-lucide="list-tree" class="w-4 h-4"></i> Bill of Materials
+    </a>
+    <div class="px-3 py-2 mt-2 text-[10px] font-mono text-zinc-600 uppercase tracking-wider">Supply Chain</div>
+    <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-2.5 text-zinc-400 transition-colors cursor-pointer" data-tab="inventory">
+      <i data-lucide="warehouse" class="w-4 h-4"></i> Inventory
+    </a>
+    <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-2.5 text-zinc-400 transition-colors cursor-pointer" data-tab="procurement">
+      <i data-lucide="shopping-cart" class="w-4 h-4"></i> Procurement
+    </a>
+    <div class="px-3 py-2 mt-2 text-[10px] font-mono text-zinc-600 uppercase tracking-wider">Production</div>
+    <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-2.5 text-zinc-400 transition-colors cursor-pointer" data-tab="manufacturing">
+      <i data-lucide="factory" class="w-4 h-4"></i> Manufacturing
+    </a>
+    <div class="px-3 py-2 mt-2 text-[10px] font-mono text-zinc-600 uppercase tracking-wider">Commercial</div>
+    <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-2.5 text-zinc-400 transition-colors cursor-pointer" data-tab="quotes">
+      <i data-lucide="file-text" class="w-4 h-4"></i> Quotes & Orders
+    </a>
+    <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-2.5 text-zinc-400 transition-colors cursor-pointer" data-tab="contacts">
+      <i data-lucide="users" class="w-4 h-4"></i> Contacts
+    </a>
+  </nav>
+  <div class="p-4 border-t border-zinc-800">
+    <div class="flex items-center gap-2">
+      <div class="w-7 h-7 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500 font-mono text-xs font-bold">AZ</div>
+      <div class="flex-1 min-w-0">
+        <div class="text-xs text-zinc-300 truncate">Arnout</div>
+        <div class="text-[10px] text-zinc-600 font-mono">Admin</div>
+      </div>
+      <i data-lucide="settings" class="w-4 h-4 text-zinc-600 hover:text-zinc-400 cursor-pointer transition-colors"></i>
+    </div>
+  </div>
+</aside>
+
+<!-- Main Content -->
+<main class="flex-1 flex flex-col h-full overflow-hidden">
+  <!-- Header Bar -->
+  <header class="sticky top-0 z-40 bg-zinc-900/80 backdrop-blur-sm border-b border-zinc-800 px-6 py-3 flex items-center justify-between flex-shrink-0">
+    <div class="flex items-center gap-3">
+      <button id="sidebarToggle" class="lg:hidden text-zinc-400 hover:text-amber-400 transition-colors">
+        <i data-lucide="menu" class="w-5 h-5"></i>
+      </button>
+      <h2 id="pageTitle" class="font-mono font-bold text-zinc-100 text-lg">Dashboard</h2>
+    </div>
+    <div class="flex items-center gap-3">
+      <div class="relative">
+        <i data-lucide="search" class="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2"></i>
+        <input type="text" id="globalSearch" placeholder="Search everything..." class="bg-zinc-800 border border-zinc-700 rounded-lg pl-9 pr-4 py-2 font-mono text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-amber-500 focus:outline-none w-64">
+      </div>
+      <button class="relative text-zinc-400 hover:text-amber-400 transition-colors p-2">
+        <i data-lucide="bell" class="w-5 h-5"></i>
+        <span class="absolute top-1 right-1 w-2 h-2 bg-amber-500 rounded-full"></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Content Area -->
+  <div class="flex-1 overflow-y-auto p-6">
+
+    <!-- DASHBOARD -->
+    <div id="tab-dashboard" class="tab-content active fade-in">
+      <!-- KPI Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-5 hover:border-amber-500/50 transition-all duration-300">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs text-zinc-500 font-mono">ACTIVE PROJECTS</span>
+            <div class="w-8 h-8 bg-amber-500/10 rounded-lg flex items-center justify-center"><i data-lucide="folder-kanban" class="w-4 h-4 text-amber-500"></i></div>
+          </div>
+          <div class="font-mono font-bold text-2xl text-zinc-100" id="kpi-projects">0</div>
+          <div class="text-xs text-green-400 mt-1 font-mono">+2 this month</div>
+        </div>
+        <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-5 hover:border-amber-500/50 transition-all duration-300">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs text-zinc-500 font-mono">OPEN ORDERS</span>
+            <div class="w-8 h-8 bg-amber-500/10 rounded-lg flex items-center justify-center"><i data-lucide="file-text" class="w-4 h-4 text-amber-500"></i></div>
+          </div>
+          <div class="font-mono font-bold text-2xl text-zinc-100" id="kpi-orders">0</div>
+          <div class="text-xs text-amber-400 mt-1 font-mono">$0 pipeline</div>
+        </div>
+        <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-5 hover:border-amber-500/50 transition-all duration-300">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs text-zinc-500 font-mono">INVENTORY VALUE</span>
+            <div class="w-8 h-8 bg-amber-500/10 rounded-lg flex items-center justify-center"><i data-lucide="warehouse" class="w-4 h-4 text-amber-500"></i></div>
+          </div>
+          <div class="font-mono font-bold text-2xl text-zinc-100" id="kpi-inventory">$0</div>
+          <div class="text-xs text-zinc-500 mt-1 font-mono" id="kpi-lowstock">0 low stock alerts</div>
+        </div>
+        <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-5 hover:border-amber-500/50 transition-all duration-300">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs text-zinc-500 font-mono">PRODUCTION</span>
+            <div class="w-8 h-8 bg-amber-500/10 rounded-lg flex items-center justify-center"><i data-lucide="factory" class="w-4 h-4 text-amber-500"></i></div>
+          </div>
+          <div class="font-mono font-bold text-2xl text-zinc-100" id="kpi-production">0</div>
+          <div class="text-xs text-green-400 mt-1 font-mono">active work orders</div>
+        </div>
+      </div>
+
+      <!-- Charts Row -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-mono font-bold text-zinc-100 text-sm">Revenue Trend</h3>
+            <span class="text-xs px-2 py-0.5 bg-amber-500/10 text-amber-400 rounded font-mono">Last 6 months</span>
+          </div>
+          <div class="chart-container"><canvas id="revenueChart"></canvas></div>
+        </div>
+        <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-mono font-bold text-zinc-100 text-sm">Project Status Distribution</h3>
+            <span class="text-xs px-2 py-0.5 bg-amber-500/10 text-amber-400 rounded font-mono">All projects</span>
+          </div>
+          <div class="chart-container"><canvas id="projectStatusChart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Recent Activity & Alerts -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bg-zinc-900 border border-zinc-700 rounded-lg p-5">
+          <h3 class="font-mono font-bold text-zinc-100 text-sm mb-4">Recent Activity</h3>
+          <div id="activityFeed" class="space-y-3 max-h-64 overflow-y-auto"></div>
+        </div>
+        <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-5">
+          <h3 class="font-mono font-bold text-zinc-100 text-sm mb-4">Alerts</h3>
+          <div id="alertsFeed" class="space-y-3 max-h-64 overflow-y-auto"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROJECTS -->
+    <div id="tab-projects" class="tab-content fade-in">
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3">
+          <select id="projectFilter" class="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 font-mono text-sm text-zinc-100 focus:border-amber-500 focus:outline-none">
+            <option value="all">All Status</option>
+            <option value="planning">Planning</option>
+            <option value="design">Design</option>
+            <option value="prototyping">Prototyping</option>
+            <option value="testing">Testing</option>
+            <option value="production">Production</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+        <button onclick="openModal('project')" class="bg-amber-500 hover:bg-amber-400 text-zinc-900 font-mono font-bold px-4 py-2.5 rounded-lg transition-colors flex items-center gap-2">
+          <i data-lucide="plus" class="w-4 h-4"></i> New Project
+        </button>
+      </div>
+      <div id="projectsList" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+    </div>
+
+    <!-- BOM -->
+    <div id="tab-bom" class="tab-content fade-in">
+      <div class="flex items-center justify-between mb-6">
+        <select id="bomProjectSelect" class="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 font-mono text-sm text-zinc-100 focus:border-amber-500 focus:outline-none" onchange="renderBOM()">
+          <option value="">Select a project...</option>
+        </select>
+        <button onclick="openModal('bomItem')" class="bg-amber-500 hover:bg-amber-400 text-zinc-900 font-mono font-bold px-4 py-2.5 rounded-lg transition-colors flex items-center gap-2">
+          <i data-lucide="plus" class="w-4 h-4"></i> Add BOM Item
+        </button>
+      </div>
+      <div id="bomSummary" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6" style="display:none;">
+        <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-4">
+          <div class="text-xs text-zinc-500 font-mono mb-1">TOTAL PARTS</div>
+          <div class="font-mono font-bold text-xl text-zinc-100" id="bomTotalParts">0</div>
+        </div>
+        <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-4">
+          <div class="text-xs text-zinc-500 font-mono mb-1">UNIT COST</div>
+          <div class="font-mono font-bold text-xl text-amber-500" id="bomUnitCost">$0.00</div>
+        </div>
+        <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-4">
+          <div class="text-xs text-zinc-500 font-mono mb-1">STOCK STATUS</div>
+          <div class="font-mono font-bold text-xl text-green-400" id="bomStockStatus">—</div>
+        </div>
+      </div>
+      <div id="bomTable" class="bg-zinc-900 border border-zinc-700 rounded-lg overflow-hidden"></div>
+    </div>
+
+    <!-- INVENTORY -->
+    <div id="tab-inventory" class="tab-content fade-in">
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3">
+          <select id="invCategoryFilter" class="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 font-mono text-sm text-zinc-100 focus:border-amber-500 focus:outline-none">
+            <option value="all">All Categories</option>
+            <option value="electronic">Electronic</option>
+            <option value="mechanical">Mechanical</option>
+            <option value="fastener">Fastener</option>
+            <option value="raw_material">Raw Material</option>
+            <option value="pcb">PCB</option>
+            <option value="tooling">Tooling</option>
+          </select>
+          <label class="flex items-center gap-2 text-xs font-mono text-zinc-400 cursor-pointer">
+            <input type="checkbox" id="lowStockOnly" class="accent-amber-500" onchange="renderInventory()"> Low stock only
+          </label>
+        </div>
+        <button onclick="openModal('inventoryItem')" class="bg-amber-500 hover:bg-amber-400 text-zinc-900 font-mono font-bold px-4 py-2.5 rounded-lg transition-colors flex items-center gap-2">
+          <i data-lucide="plus" class="w-4 h-4"></i> Add Item
+        </button>
+      </div>
+      <div id="inventoryTable" class="bg-zinc-900 border border-zinc-700 rounded-lg overflow-hidden"></div>
+    </div>
+
+    <!-- PROCUREMENT -->
+    <div id="tab-procurement" class="tab-content fade-in">
+      <div class="flex items-center justify-between mb-6">
+        <select id="poStatusFilter" class="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 font-mono text-sm text-zinc-100 focus:border-amber-500 focus:outline-none" onchange="renderProcurement()">
+          <option value="all">All Status</option>
+          <option value="draft">Draft</option>
+          <option value="sent">Sent</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="shipped">Shipped</option>
+          <option value="received">Received</option>
+        </select>
+        <button onclick="openModal('purchaseOrder')" class="bg-amber-500 hover:bg-amber-400 text-zinc-900 font-mono font-bold px-4 py-2.5 rounded-lg transition-colors flex items-center gap-2">
+          <i data-lucide="plus" class="w-4 h-4"></i> New PO
+        </button>
+      </div>
+      <div id="poList" class="space-y-3"></div>
+    </div>
+
+    <!-- MANUFACTURING -->
+    <div id="tab-manufacturing" class="tab-content fade-in">
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3">
+          <select id="woStatusFilter" class="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 font-mono text-sm text-zinc-100 focus:border-amber-500 focus:outline-none" onchange="renderManufacturing()">
+            <option value="all">All Status</option>
+            <option value="queued">Queued</option>
+            <option value="in_progress">In Progress</option>
+            <option value="qa">QA/Testing</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+        <button onclick="openModal('workOrder')" class="bg-amber-500 hover:bg-amber-400 text-zinc-900 font-mono font-bold px-4 py-2.5 rounded-lg transition-colors flex items-center gap-2">
+          <i data-lucide="plus" class="w-4 h-4"></i> New Work Order
+        </button>
+      </div>
+      <!-- Capacity Overview -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-4">
+          <div class="text-xs text-zinc-500 font-mono mb-1">3D PRINTING</div>
+          <div class="w-full bg-zinc-800 rounded-full h-2 mt-2"><div class="bg-amber-500 h-2 rounded-full progress-bar" style="width:65%"></div></div>
+          <div class="text-xs text-zinc-400 font-mono mt-1">65% utilized</div>
+        </div>
+        <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-4">
+          <div class="text-xs text-zinc-500 font-mono mb-1">CNC MILLING</div>
+          <div class="w-full bg-zinc-800 rounded-full h-2 mt-2"><div class="bg-amber-500 h-2 rounded-full progress-bar" style="width:40%"></div></div>
+          <div class="text-xs text-zinc-400 font-mono mt-1">40% utilized</div>
+        </div>
+        <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-4">
+          <div class="text-xs text-zinc-500 font-mono mb-1">PCB ASSEMBLY</div>
+          <div class="w-full bg-zinc-800 rounded-full h-2 mt-2"><div class="bg-green-500 h-2 rounded-full progress-bar" style="width:80%"></div></div>
+          <div class="text-xs text-zinc-400 font-mono mt-1">80% utilized</div>
+        </div>
+        <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-4">
+          <div class="text-xs text-zinc-500 font-mono mb-1">TEST BENCH</div>
+          <div class="w-full bg-zinc-800 rounded-full h-2 mt-2"><div class="bg-amber-500 h-2 rounded-full progress-bar" style="width:30%"></div></div>
+          <div class="text-xs text-zinc-400 font-mono mt-1">30% utilized</div>
+        </div>
+      </div>
+      <div id="woList" class="space-y-3"></div>
+    </div>
+
+    <!-- QUOTES & ORDERS -->
+    <div id="tab-quotes" class="tab-content fade-in">
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3">
+          <button class="text-xs font-mono px-3 py-1.5 rounded-lg transition-colors bg-amber-500/10 text-amber-400 border border-amber-500/30" id="btnQuotes" onclick="toggleQuoteView('quotes')">Quotes</button>
+          <button class="text-xs font-mono px-3 py-1.5 rounded-lg transition-colors bg-zinc-700 text-zinc-300" id="btnOrders" onclick="toggleQuoteView('orders')">Orders</button>
+        </div>
+        <button onclick="openModal('quote')" class="bg-amber-500 hover:bg-amber-400 text-zinc-900 font-mono font-bold px-4 py-2.5 rounded-lg transition-colors flex items-center gap-2">
+          <i data-lucide="plus" class="w-4 h-4"></i> <span id="newQuoteBtn">New Quote</span>
+        </button>
+      </div>
+      <div id="quotesOrdersList" class="space-y-3"></div>
+    </div>
+
+    <!-- CONTACTS -->
+    <div id="tab-contacts" class="tab-content fade-in">
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3">
+          <button class="text-xs font-mono px-3 py-1.5 rounded-lg transition-colors bg-amber-500/10 text-amber-400 border border-amber-500/30" id="btnCustomers" onclick="toggleContactView('customers')">Customers</button>
+          <button class="text-xs font-mono px-3 py-1.5 rounded-lg transition-colors bg-zinc-700 text-zinc-300" id="btnSuppliers" onclick="toggleContactView('suppliers')">Suppliers</button>
+        </div>
+        <button onclick="openModal('contact')" class="bg-amber-500 hover:bg-amber-400 text-zinc-900 font-mono font-bold px-4 py-2.5 rounded-lg transition-colors flex items-center gap-2">
+          <i data-lucide="plus" class="w-4 h-4"></i> Add Contact
+        </button>
+      </div>
+      <div id="contactsList" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+    </div>
+
+  </div>
+</main>
+</div>
+
+<!-- Modal Overlay -->
+<div id="modalOverlay" class="modal-overlay fixed inset-0 z-50 bg-black/90 backdrop-blur-sm items-center justify-center p-4">
+  <div class="bg-zinc-900 border border-zinc-700 rounded-xl w-full max-w-lg max-h-[85vh] overflow-y-auto">
+    <div class="flex items-center justify-between p-5 border-b border-zinc-800">
+      <h3 id="modalTitle" class="font-mono font-bold text-zinc-100"></h3>
+      <button onclick="closeModal()" class="text-zinc-400 hover:text-amber-400 transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+    <div id="modalBody" class="p-5"></div>
+    <div class="flex justify-end gap-3 p-5 border-t border-zinc-800">
+      <button onclick="closeModal()" class="bg-zinc-700 hover:bg-zinc-600 text-zinc-300 text-xs font-mono px-4 py-2.5 rounded-lg transition-colors">Cancel</button>
+      <button id="modalSave" class="bg-amber-500 hover:bg-amber-400 text-zinc-900 font-mono font-bold px-4 py-2.5 rounded-lg transition-colors">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div id="detailOverlay" class="modal-overlay fixed inset-0 z-50 bg-black/90 backdrop-blur-sm items-center justify-center p-4">
+  <div class="bg-zinc-900 border border-zinc-700 rounded-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto">
+    <div class="flex items-center justify-between p-5 border-b border-zinc-800">
+      <h3 id="detailTitle" class="font-mono font-bold text-zinc-100"></h3>
+      <button onclick="closeDetail()" class="text-zinc-400 hover:text-amber-400 transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+    <div id="detailBody" class="p-5"></div>
+  </div>
+</div>
+
+<script>
+// ==================== DATA STORE ====================
+const DB = {
+  projects: [
+    { id: 'PRJ-001', name: 'AeroSense Drone Platform', client: 'SkyTech Industries', status: 'prototyping', priority: 'high', lead: 'Marcus Chen', startDate: '2025-09-01', deadline: '2026-04-15', progress: 62, description: 'Custom UAV platform with multi-spectral sensing array for agricultural monitoring. Includes flight controller, gimbal system, and ground station integration.', budget: 85000 },
+    { id: 'PRJ-002', name: 'IoT Environmental Sensor Hub', client: 'GreenMetrics Corp', status: 'design', priority: 'medium', lead: 'Sarah Okafor', startDate: '2025-11-15', deadline: '2026-06-30', progress: 28, description: 'Low-power IoT hub with LoRaWAN connectivity, monitoring temp, humidity, CO2, PM2.5. Solar-powered with 30-day battery backup.', budget: 42000 },
+    { id: 'PRJ-003', name: 'Robotic Arm v3 — 6-DOF', client: 'AutomateX Labs', status: 'testing', priority: 'high', lead: 'Marcus Chen', startDate: '2025-06-01', deadline: '2026-02-28', progress: 88, description: 'Compact 6-axis robotic arm for desktop assembly. Stepper-driven with encoder feedback, sub-mm repeatability target.', budget: 120000 },
+    { id: 'PRJ-004', name: 'Smart Power Distribution Unit', client: 'DataVault Solutions', status: 'production', priority: 'medium', lead: 'Priya Sharma', startDate: '2025-04-10', deadline: '2026-01-31', progress: 95, description: 'Rack-mounted PDU with per-outlet monitoring, remote switching, and SNMP/MQTT telemetry. 20A capacity per phase.', budget: 56000 },
+    { id: 'PRJ-005', name: 'Wearable Haptic Controller', client: 'VirtuMotion Inc', status: 'planning', priority: 'low', lead: 'Sarah Okafor', startDate: '2026-01-05', deadline: '2026-08-30', progress: 8, description: 'Glove-based haptic feedback controller for VR/AR. LRA actuators per-finger, IMU tracking, BLE 5.3 connectivity.', budget: 65000 },
+    { id: 'PRJ-006', name: 'Underwater Camera Housing', client: 'OceanView Research', status: 'design', priority: 'medium', lead: 'Marcus Chen', startDate: '2025-12-01', deadline: '2026-05-15', progress: 35, description: 'Pressure-rated aluminum housing for deep-sea camera system. 300m depth rating, fiber-optic data link, active thermal management.', budget: 38000 },
+    { id: 'PRJ-007', name: 'LiDAR Scanner Module', client: 'MapDynamics', status: 'completed', priority: 'high', lead: 'Priya Sharma', startDate: '2025-01-15', deadline: '2025-10-01', progress: 100, description: 'Compact 360° LiDAR module for autonomous navigation. ToF-based with 40m range, 100K points/sec. Successfully delivered and in production.', budget: 95000 }
+  ],
+  inventory: [
+    { id: 'INV-001', name: 'STM32F407VGT6 MCU', sku: 'MCU-STM32-407', category: 'electronic', qty: 145, minQty: 50, unit: 'pcs', unitCost: 8.50, location: 'Bin A-12', supplier: 'DigiKey Electronics' },
+    { id: 'INV-002', name: 'NEMA 17 Stepper Motor', sku: 'MOT-NEMA17-48', category: 'mechanical', qty: 32, minQty: 20, unit: 'pcs', unitCost: 14.20, location: 'Shelf B-03', supplier: 'MechParts Global' },
+    { id: 'INV-003', name: 'M3x10 Socket Head Cap Screw', sku: 'FST-M3-10SH', category: 'fastener', qty: 2400, minQty: 500, unit: 'pcs', unitCost: 0.03, location: 'Bin C-07', supplier: 'MechParts Global' },
+    { id: 'INV-004', name: 'LRA Haptic Actuator 10mm', sku: 'ACT-LRA-10', category: 'electronic', qty: 18, minQty: 40, unit: 'pcs', unitCost: 3.80, location: 'Bin A-15', supplier: 'DigiKey Electronics' },
+    { id: 'INV-005', name: '6061 Aluminum Bar 25x25mm', sku: 'RAW-AL6061-25', category: 'raw_material', qty: 48, minQty: 20, unit: 'meters', unitCost: 12.00, location: 'Rack D-01', supplier: 'MetalWorks Supply' },
+    { id: 'INV-006', name: 'Custom PCB — Drone FC v2.1', sku: 'PCB-DRN-FC21', category: 'pcb', qty: 12, minQty: 10, unit: 'pcs', unitCost: 28.50, location: 'ESD Cabinet 1', supplier: 'PCBWay' },
+    { id: 'INV-007', name: 'SX1276 LoRa Transceiver', sku: 'RF-SX1276', category: 'electronic', qty: 65, minQty: 30, unit: 'pcs', unitCost: 5.20, location: 'Bin A-18', supplier: 'DigiKey Electronics' },
+    { id: 'INV-008', name: 'BME280 Sensor Module', sku: 'SEN-BME280', category: 'electronic', qty: 88, minQty: 25, unit: 'pcs', unitCost: 3.40, location: 'Bin A-20', supplier: 'DigiKey Electronics' },
+    { id: 'INV-009', name: 'GT2 Timing Belt 6mm', sku: 'MEC-GT2-6', category: 'mechanical', qty: 35, minQty: 15, unit: 'meters', unitCost: 2.80, location: 'Shelf B-06', supplier: 'MechParts Global' },
+    { id: 'INV-010', name: 'TMC2209 Stepper Driver', sku: 'DRV-TMC2209', category: 'electronic', qty: 42, minQty: 20, unit: 'pcs', unitCost: 6.90, location: 'Bin A-14', supplier: 'DigiKey Electronics' },
+    { id: 'INV-011', name: 'Garlock O-Ring AS568-216', sku: 'SEL-ORING-216', category: 'mechanical', qty: 8, minQty: 25, unit: 'pcs', unitCost: 1.60, location: 'Bin C-11', supplier: 'MechParts Global' },
+    { id: 'INV-012', name: '18650 Li-Ion Cell 3000mAh', sku: 'BAT-18650-3AH', category: 'electronic', qty: 120, minQty: 50, unit: 'pcs', unitCost: 4.50, location: 'Battery Cabinet', supplier: 'DigiKey Electronics' },
+    { id: 'INV-013', name: 'PLA Filament 1.75mm Black', sku: 'FIL-PLA-BLK', category: 'raw_material', qty: 6, minQty: 4, unit: 'kg', unitCost: 22.00, location: 'Shelf E-02', supplier: 'PrintSupply Co' },
+    { id: 'INV-014', name: 'Custom PCB — IoT Hub v1.0', sku: 'PCB-IOT-HUB10', category: 'pcb', qty: 24, minQty: 10, unit: 'pcs', unitCost: 18.75, location: 'ESD Cabinet 1', supplier: 'PCBWay' },
+    { id: 'INV-015', name: 'Ball Bearing 608-2RS', sku: 'BRG-608-2RS', category: 'mechanical', qty: 55, minQty: 30, unit: 'pcs', unitCost: 1.20, location: 'Bin C-03', supplier: 'MechParts Global' },
+    { id: 'INV-016', name: 'Silicone Gasket Sheet 1mm', sku: 'RAW-SIL-1MM', category: 'raw_material', qty: 3, minQty: 5, unit: 'sheets', unitCost: 35.00, location: 'Rack D-04', supplier: 'MetalWorks Supply' },
+    { id: 'INV-017', name: 'ESP32-S3-WROOM Module', sku: 'MCU-ESP32S3', category: 'electronic', qty: 78, minQty: 30, unit: 'pcs', unitCost: 4.10, location: 'Bin A-16', supplier: 'DigiKey Electronics' },
+    { id: 'INV-018', name: '0.96" OLED Display SSD1306', sku: 'DSP-OLED-096', category: 'electronic', qty: 30, minQty: 15, unit: 'pcs', unitCost: 3.90, location: 'Bin A-22', supplier: 'DigiKey Electronics' },
+  ],
+  bom: [
+    { id: 'BOM-001', projectId: 'PRJ-001', invId: 'INV-001', partName: 'STM32F407VGT6 MCU', qty: 2, refDes: 'U1, U2', notes: 'Flight controller + payload processor' },
+    { id: 'BOM-002', projectId: 'PRJ-001', invId: 'INV-006', partName: 'Custom PCB — Drone FC v2.1', qty: 1, refDes: 'PCB1', notes: 'Main flight controller board' },
+    { id: 'BOM-003', projectId: 'PRJ-001', invId: 'INV-002', partName: 'NEMA 17 Stepper Motor', qty: 2, refDes: 'M1, M2', notes: 'Gimbal pitch/yaw axes' },
+    { id: 'BOM-004', projectId: 'PRJ-001', invId: 'INV-012', partName: '18650 Li-Ion Cell 3000mAh', qty: 6, refDes: 'BAT1-6', notes: '6S1P battery pack' },
+    { id: 'BOM-005', projectId: 'PRJ-001', invId: 'INV-005', partName: '6061 Aluminum Bar 25x25mm', qty: 0.8, refDes: 'FRAME', notes: 'Arm and frame structure, 800mm total' },
+    { id: 'BOM-006', projectId: 'PRJ-002', invId: 'INV-017', partName: 'ESP32-S3-WROOM Module', qty: 1, refDes: 'U1', notes: 'Main processor with WiFi/BLE' },
+    { id: 'BOM-007', projectId: 'PRJ-002', invId: 'INV-007', partName: 'SX1276 LoRa Transceiver', qty: 1, refDes: 'U2', notes: 'Long-range data backhaul' },
+    { id: 'BOM-008', projectId: 'PRJ-002', invId: 'INV-008', partName: 'BME280 Sensor Module', qty: 1, refDes: 'S1', notes: 'Temp/Humidity/Pressure' },
+    { id: 'BOM-009', projectId: 'PRJ-002', invId: 'INV-014', partName: 'Custom PCB — IoT Hub v1.0', qty: 1, refDes: 'PCB1', notes: 'Main hub PCB' },
+    { id: 'BOM-010', projectId: 'PRJ-002', invId: 'INV-018', partName: '0.96" OLED Display SSD1306', qty: 1, refDes: 'D1', notes: 'Local status display' },
+    { id: 'BOM-011', projectId: 'PRJ-003', invId: 'INV-002', partName: 'NEMA 17 Stepper Motor', qty: 6, refDes: 'M1-M6', notes: '6-DOF joint actuators' },
+    { id: 'BOM-012', projectId: 'PRJ-003', invId: 'INV-010', partName: 'TMC2209 Stepper Driver', qty: 6, refDes: 'DRV1-6', notes: 'Silent stepper drivers' },
+    { id: 'BOM-013', projectId: 'PRJ-003', invId: 'INV-015', partName: 'Ball Bearing 608-2RS', qty: 12, refDes: 'BRG1-12', notes: 'Joint bearings, 2 per axis' },
+    { id: 'BOM-014', projectId: 'PRJ-003', invId: 'INV-009', partName: 'GT2 Timing Belt 6mm', qty: 2.4, refDes: 'BELT', notes: 'Belt drive for joints 1-3' },
+    { id: 'BOM-015', projectId: 'PRJ-006', invId: 'INV-005', partName: '6061 Aluminum Bar 25x25mm', qty: 3.2, refDes: 'HOUSING', notes: 'CNC machined housing shell' },
+    { id: 'BOM-016', projectId: 'PRJ-006', invId: 'INV-011', partName: 'Garlock O-Ring AS568-216', qty: 4, refDes: 'SEAL1-4', notes: 'Pressure sealing rings' },
+  ],
+  purchaseOrders: [
+    { id: 'PO-001', supplier: 'DigiKey Electronics', items: [{ invId: 'INV-004', name: 'LRA Haptic Actuator 10mm', qty: 60, unitCost: 3.80 }, { invId: 'INV-010', name: 'TMC2209 Stepper Driver', qty: 20, unitCost: 6.90 }], status: 'confirmed', date: '2026-01-20', expectedDelivery: '2026-02-12', total: 366 },
+    { id: 'PO-002', supplier: 'PCBWay', items: [{ invId: 'INV-006', name: 'Custom PCB — Drone FC v2.1', qty: 25, unitCost: 28.50 }], status: 'shipped', date: '2026-01-15', expectedDelivery: '2026-02-08', total: 712.50 },
+    { id: 'PO-003', supplier: 'MechParts Global', items: [{ invId: 'INV-011', name: 'Garlock O-Ring AS568-216', qty: 50, unitCost: 1.60 }, { invId: 'INV-002', name: 'NEMA 17 Stepper Motor', qty: 12, unitCost: 14.20 }], status: 'sent', date: '2026-02-01', expectedDelivery: '2026-02-20', total: 250.40 },
+    { id: 'PO-004', supplier: 'MetalWorks Supply', items: [{ invId: 'INV-016', name: 'Silicone Gasket Sheet 1mm', qty: 10, unitCost: 35.00 }], status: 'draft', date: '2026-02-08', expectedDelivery: '', total: 350 },
+    { id: 'PO-005', supplier: 'DigiKey Electronics', items: [{ invId: 'INV-001', name: 'STM32F407VGT6 MCU', qty: 50, unitCost: 8.50 }], status: 'received', date: '2025-12-10', expectedDelivery: '2025-12-28', total: 425 },
+  ],
+  workOrders: [
+    { id: 'WO-001', projectId: 'PRJ-001', name: 'Assemble Drone FC Board v2.1', station: 'PCB Assembly', status: 'in_progress', priority: 'high', qty: 3, completed: 1, assignee: 'Marcus Chen', startDate: '2026-02-03', dueDate: '2026-02-14', notes: 'Solder SMD components, flash firmware, run continuity test' },
+    { id: 'WO-002', projectId: 'PRJ-003', name: 'CNC Machine Arm Joint Housings', station: 'CNC Milling', status: 'in_progress', priority: 'high', qty: 6, completed: 4, assignee: 'Jake Torres', startDate: '2026-01-20', dueDate: '2026-02-10', notes: '6061 aluminum, tolerance ±0.05mm. Housings for joints 1-6' },
+    { id: 'WO-003', projectId: 'PRJ-003', name: 'Assemble & Calibrate Robotic Arm', station: 'Test Bench', status: 'queued', priority: 'high', qty: 1, completed: 0, assignee: 'Marcus Chen', startDate: '2026-02-11', dueDate: '2026-02-25', notes: 'Final assembly after joint machining. Full calibration cycle required.' },
+    { id: 'WO-004', projectId: 'PRJ-004', name: 'Produce PDU Batch — 10 units', station: 'PCB Assembly', status: 'qa', priority: 'medium', qty: 10, completed: 10, assignee: 'Priya Sharma', startDate: '2026-01-06', dueDate: '2026-02-05', notes: 'All assembled, running QA: thermal testing + SNMP comms validation' },
+    { id: 'WO-005', projectId: 'PRJ-001', name: '3D Print Gimbal Mount v3', station: '3D Printing', status: 'completed', priority: 'medium', qty: 2, completed: 2, assignee: 'Sarah Okafor', startDate: '2026-01-28', dueDate: '2026-02-02', notes: 'PLA, 0.2mm layer height, 40% infill. Both prints passed inspection.' },
+    { id: 'WO-006', projectId: 'PRJ-006', name: 'Machine Camera Housing Shell', station: 'CNC Milling', status: 'queued', priority: 'medium', qty: 1, completed: 0, assignee: 'Jake Torres', startDate: '2026-02-15', dueDate: '2026-03-01', notes: '6061-T6 aluminum, 5-axis operation. Pressure test after machining.' },
+    { id: 'WO-007', projectId: 'PRJ-002', name: 'Solder IoT Hub Prototype Boards', station: 'PCB Assembly', status: 'queued', priority: 'low', qty: 5, completed: 0, assignee: 'Priya Sharma', startDate: '2026-02-18', dueDate: '2026-02-28', notes: 'First prototype run. Hand-solder SMD and through-hole.' },
+  ],
+  quotes: [
+    { id: 'QUO-001', client: 'SkyTech Industries', project: 'AeroSense Drone Platform', type: 'quote', status: 'accepted', date: '2025-08-15', validUntil: '2025-09-15', items: [{ desc: 'Engineering & Design', qty: 1, unitPrice: 35000 }, { desc: 'Prototype Build (3 units)', qty: 3, unitPrice: 8500 }, { desc: 'Flight Testing & Certification', qty: 1, unitPrice: 12000 }], total: 72500, notes: 'Includes 3 prototype units. Production pricing TBD.' },
+    { id: 'QUO-002', client: 'GreenMetrics Corp', project: 'IoT Environmental Sensor Hub', type: 'quote', status: 'sent', date: '2026-01-10', validUntil: '2026-02-10', items: [{ desc: 'PCB Design & Layout', qty: 1, unitPrice: 12000 }, { desc: 'Prototype Units', qty: 10, unitPrice: 1800 }, { desc: 'Firmware Development', qty: 1, unitPrice: 15000 }], total: 45000, notes: '10 pre-production units for field testing.' },
+    { id: 'ORD-001', client: 'AutomateX Labs', project: 'Robotic Arm v3 — 6-DOF', type: 'order', status: 'in_production', date: '2025-07-01', items: [{ desc: 'Robotic Arm v3 Complete Unit', qty: 2, unitPrice: 45000 }, { desc: 'Spare Parts Kit', qty: 2, unitPrice: 3500 }], total: 97000, notes: '2 production units with spare kits. Delivery Q1 2026.' },
+    { id: 'ORD-002', client: 'DataVault Solutions', project: 'Smart Power Distribution Unit', type: 'order', status: 'shipped', date: '2025-10-20', items: [{ desc: 'Smart PDU 20A 3-Phase', qty: 10, unitPrice: 4200 }], total: 42000, notes: 'First production batch. Shipped via freight.' },
+    { id: 'QUO-003', client: 'OceanView Research', project: 'Underwater Camera Housing', type: 'quote', status: 'draft', date: '2026-02-05', validUntil: '2026-03-05', items: [{ desc: 'Housing Design & Engineering', qty: 1, unitPrice: 15000 }, { desc: 'Prototype Housing (300m rated)', qty: 1, unitPrice: 8000 }, { desc: 'Pressure Testing', qty: 1, unitPrice: 3000 }], total: 26000, notes: 'Initial quote for single prototype.' },
+    { id: 'ORD-003', client: 'MapDynamics', project: 'LiDAR Scanner Module', type: 'order', status: 'delivered', date: '2025-05-10', items: [{ desc: 'LiDAR Module — Production Unit', qty: 5, unitPrice: 12000 }, { desc: 'Integration Support', qty: 1, unitPrice: 5000 }], total: 65000, notes: 'All 5 units delivered. Support contract active.' },
+  ],
+  contacts: [
+    { id: 'CON-001', type: 'customer', name: 'SkyTech Industries', contact: 'David Kowalski', email: 'dkowalski@skytech.io', phone: '+1 (415) 555-0142', address: 'San Francisco, CA', notes: 'Agricultural drone customer. Budget-conscious, values reliability.', revenue: 72500 },
+    { id: 'CON-002', type: 'customer', name: 'AutomateX Labs', contact: 'Lin Wei', email: 'lwei@automatex.com', phone: '+1 (512) 555-0198', address: 'Austin, TX', notes: 'Robotics integrator. High-value, repeat customer potential.', revenue: 97000 },
+    { id: 'CON-003', type: 'customer', name: 'GreenMetrics Corp', contact: 'Anna Petrov', email: 'apetrov@greenmetrics.co', phone: '+1 (303) 555-0167', address: 'Denver, CO', notes: 'Environmental monitoring startup. Quote pending.', revenue: 0 },
+    { id: 'CON-004', type: 'customer', name: 'DataVault Solutions', contact: 'Mike O\'Brien', email: 'mobrien@datavault.com', phone: '+1 (206) 555-0134', address: 'Seattle, WA', notes: 'Data center infrastructure. Repeat order expected Q2.', revenue: 42000 },
+    { id: 'CON-005', type: 'customer', name: 'VirtuMotion Inc', contact: 'Yuki Tanaka', email: 'ytanaka@virtumotion.io', phone: '+1 (213) 555-0189', address: 'Los Angeles, CA', notes: 'VR hardware startup. Early stage project.', revenue: 0 },
+    { id: 'CON-006', type: 'customer', name: 'OceanView Research', contact: 'Dr. Sarah Mendez', email: 'smendez@oceanview.org', phone: '+1 (858) 555-0156', address: 'San Diego, CA', notes: 'Marine research institute. Quote being drafted.', revenue: 0 },
+    { id: 'CON-007', type: 'customer', name: 'MapDynamics', contact: 'Tom Hessler', email: 'thessler@mapdynamics.com', phone: '+1 (408) 555-0178', address: 'San Jose, CA', notes: 'Autonomous nav company. Delivered LiDAR project.', revenue: 65000 },
+    { id: 'SUP-001', type: 'supplier', name: 'DigiKey Electronics', contact: 'Account Manager', email: 'orders@digikey.com', phone: '+1 (800) 344-4539', address: 'Thief River Falls, MN', notes: 'Primary electronic components supplier. Fast shipping, good stock.', revenue: 0 },
+    { id: 'SUP-002', type: 'supplier', name: 'MechParts Global', contact: 'Raj Patel', email: 'raj@mechpartsglobal.com', phone: '+1 (714) 555-0145', address: 'Irvine, CA', notes: 'Mechanical components: motors, bearings, belts, fasteners.', revenue: 0 },
+    { id: 'SUP-003', type: 'supplier', name: 'PCBWay', contact: 'Sales Team', email: 'sales@pcbway.com', phone: '+86 755-2349-1090', address: 'Shenzhen, China', notes: 'PCB fabrication and assembly. 5-day lead time for protos.', revenue: 0 },
+    { id: 'SUP-004', type: 'supplier', name: 'MetalWorks Supply', contact: 'Beth Harmon', email: 'beth@metalworkssupply.com', phone: '+1 (503) 555-0123', address: 'Portland, OR', notes: 'Raw materials: aluminum, steel, gaskets, sealing materials.', revenue: 0 },
+    { id: 'SUP-005', type: 'supplier', name: 'PrintSupply Co', contact: 'Online Store', email: 'support@printsupply.co', phone: '+1 (800) 555-0199', address: 'Chicago, IL', notes: '3D printing filaments and accessories. Bulk discount available.', revenue: 0 },
+  ]
+};
+
+// Save/Load from localStorage
+function saveDB() { localStorage.setItem('forgeERP', JSON.stringify(DB)); }
+function loadDB() {
+  const saved = localStorage.getItem('forgeERP');
+  if (saved) {
+    const parsed = JSON.parse(saved);
+    Object.keys(parsed).forEach(k => { if (DB[k]) DB[k] = parsed[k]; });
+  }
+}
+
+// ==================== UTILITY FUNCTIONS ====================
+function formatCurrency(n) { return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }); }
+function formatDate(d) { if (!d) return '—'; const dt = new Date(d + 'T00:00:00'); return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+function statusColor(s) {
+  const map = { planning: 'bg-zinc-600', design: 'bg-blue-500/20 text-blue-400', prototyping: 'bg-amber-500/20 text-amber-400', testing: 'bg-purple-500/20 text-purple-400', production: 'bg-green-500/20 text-green-400', completed: 'bg-green-700/30 text-green-300',
+    draft: 'bg-zinc-600', sent: 'bg-blue-500/20 text-blue-400', confirmed: 'bg-amber-500/20 text-amber-400', shipped: 'bg-purple-500/20 text-purple-400', received: 'bg-green-500/20 text-green-400',
+    queued: 'bg-zinc-600 text-zinc-300', in_progress: 'bg-amber-500/20 text-amber-400', qa: 'bg-purple-500/20 text-purple-400',
+    accepted: 'bg-green-500/20 text-green-400', in_production: 'bg-amber-500/20 text-amber-400', delivered: 'bg-green-700/30 text-green-300',
+    high: 'bg-red-500/20 text-red-400', medium: 'bg-amber-500/20 text-amber-400', low: 'bg-zinc-600 text-zinc-400'
+  };
+  return map[s] || 'bg-zinc-600 text-zinc-300';
+}
+function statusLabel(s) { return s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()); }
+function nextId(arr, prefix) {
+  const nums = arr.map(i => parseInt(i.id.split('-')[1]));
+  return prefix + '-' + String(Math.max(0, ...nums) + 1).padStart(3, '0');
+}
+
+// ==================== NAVIGATION ====================
+let currentTab = 'dashboard';
+let quoteView = 'quotes';
+let contactView = 'customers';
+
+document.querySelectorAll('.sidebar-link').forEach(link => {
+  link.addEventListener('click', (e) => {
+    e.preventDefault();
+    const tab = link.dataset.tab;
+    switchTab(tab);
+  });
+});
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+  document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  const titles = { dashboard: 'Dashboard', projects: 'Projects', bom: 'Bill of Materials', inventory: 'Inventory', procurement: 'Procurement', manufacturing: 'Manufacturing', quotes: 'Quotes & Orders', contacts: 'Contacts' };
+  document.getElementById('pageTitle').textContent = titles[tab] || tab;
+  renderTab(tab);
+}
+
+function renderTab(tab) {
+  switch(tab) {
+    case 'dashboard': renderDashboard(); break;
+    case 'projects': renderProjects(); break;
+    case 'bom': renderBOMSelect(); renderBOM(); break;
+    case 'inventory': renderInventory(); break;
+    case 'procurement': renderProcurement(); break;
+    case 'manufacturing': renderManufacturing(); break;
+    case 'quotes': renderQuotesOrders(); break;
+    case 'contacts': renderContacts(); break;
+  }
+}
+
+// ==================== DASHBOARD ====================
+let revenueChart, projectStatusChart;
+
+function renderDashboard() {
+  const activeProjects = DB.projects.filter(p => p.status !== 'completed').length;
+  const openOrders = DB.quotes.filter(q => q.type === 'order' && q.status !== 'delivered').length;
+  const openQuotes = DB.quotes.filter(q => q.type === 'quote' && q.status === 'sent').length;
+  const invValue = DB.inventory.reduce((s, i) => s + (i.qty * i.unitCost), 0);
+  const lowStock = DB.inventory.filter(i => i.qty <= i.minQty).length;
+  const activeWO = DB.workOrders.filter(w => ['in_progress', 'qa'].includes(w.status)).length;
+  const pipeline = DB.quotes.filter(q => q.type === 'quote' && ['sent', 'draft'].includes(q.status)).reduce((s, q) => s + q.total, 0);
+
+  document.getElementById('kpi-projects').textContent = activeProjects;
+  document.getElementById('kpi-orders').textContent = openOrders + openQuotes;
+  document.getElementById('kpi-orders').parentElement.querySelector('.text-amber-400').textContent = formatCurrency(pipeline) + ' pipeline';
+  document.getElementById('kpi-inventory').textContent = formatCurrency(invValue);
+  document.getElementById('kpi-lowstock').textContent = lowStock + ' low stock alert' + (lowStock !== 1 ? 's' : '');
+  if (lowStock > 0) document.getElementById('kpi-lowstock').className = 'text-xs text-red-400 mt-1 font-mono';
+  document.getElementById('kpi-production').textContent = activeWO;
+
+  // Revenue Chart
+  if (revenueChart) revenueChart.destroy();
+  const ctx1 = document.getElementById('revenueChart').getContext('2d');
+  revenueChart = new Chart(ctx1, {
+    type: 'line',
+    data: {
+      labels: ['Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb'],
+      datasets: [{
+        label: 'Revenue',
+        data: [18000, 42000, 35000, 65000, 52000, 71000],
+        borderColor: '#f59e0b',
+        backgroundColor: 'rgba(245,158,11,0.1)',
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#f59e0b',
+        pointRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: '#27272a' }, ticks: { color: '#71717a', font: { family: 'JetBrains Mono', size: 11 } } },
+        y: { grid: { color: '#27272a' }, ticks: { color: '#71717a', font: { family: 'JetBrains Mono', size: 11 }, callback: v => '$' + (v/1000) + 'k' } }
+      }
+    }
+  });
+
+  // Project Status Chart
+  if (projectStatusChart) projectStatusChart.destroy();
+  const ctx2 = document.getElementById('projectStatusChart').getContext('2d');
+  const statuses = ['planning', 'design', 'prototyping', 'testing', 'production', 'completed'];
+  const statusCounts = statuses.map(s => DB.projects.filter(p => p.status === s).length);
+  projectStatusChart = new Chart(ctx2, {
+    type: 'doughnut',
+    data: {
+      labels: statuses.map(statusLabel),
+      datasets: [{
+        data: statusCounts,
+        backgroundColor: ['#3f3f46', '#3b82f6', '#f59e0b', '#a855f7', '#22c55e', '#166534'],
+        borderWidth: 0,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'right', labels: { color: '#a1a1aa', font: { family: 'JetBrains Mono', size: 11 }, padding: 12, usePointStyle: true } } },
+      cutout: '65%',
+    }
+  });
+
+  // Activity Feed
+  const activities = [
+    { icon: 'check-circle', color: 'text-green-400', text: 'WO-005: 3D Print Gimbal Mount v3 — completed', time: '2 hours ago' },
+    { icon: 'truck', color: 'text-purple-400', text: 'PO-002: PCBWay order shipped — tracking updated', time: '5 hours ago' },
+    { icon: 'alert-triangle', color: 'text-red-400', text: 'INV-004: LRA Haptic Actuator below min stock (18/40)', time: '1 day ago' },
+    { icon: 'file-plus', color: 'text-blue-400', text: 'QUO-003: New quote drafted for OceanView Research', time: '1 day ago' },
+    { icon: 'wrench', color: 'text-amber-400', text: 'WO-002: CNC Joint Housings — 4/6 completed', time: '2 days ago' },
+    { icon: 'package', color: 'text-green-400', text: 'PO-005: DigiKey order received — 50x STM32 MCUs', time: '3 days ago' },
+    { icon: 'folder-plus', color: 'text-amber-400', text: 'PRJ-005: Wearable Haptic Controller project created', time: '5 days ago' },
+  ];
+  document.getElementById('activityFeed').innerHTML = activities.map(a => `
+    <div class="flex items-start gap-3 p-2 rounded-lg hover:bg-zinc-800/50 transition-colors">
+      <i data-lucide="${a.icon}" class="w-4 h-4 ${a.color} mt-0.5 flex-shrink-0"></i>
+      <div class="flex-1 min-w-0">
+        <div class="text-xs text-zinc-300">${a.text}</div>
+        <div class="text-[10px] text-zinc-600 font-mono mt-0.5">${a.time}</div>
+      </div>
+    </div>
+  `).join('');
+
+  // Alerts
+  const alerts = DB.inventory.filter(i => i.qty <= i.minQty).map(i => ({
+    icon: 'alert-triangle', color: 'text-red-400',
+    text: `${i.sku}: ${i.name} — ${i.qty}/${i.minQty} ${i.unit}`,
+    action: `<button class="text-[10px] font-mono text-amber-400 hover:text-amber-300" onclick="switchTab('procurement')">Create PO →</button>`
+  }));
+  const woOverdue = DB.workOrders.filter(w => w.status !== 'completed' && new Date(w.dueDate) < new Date());
+  woOverdue.forEach(w => alerts.push({ icon: 'clock', color: 'text-amber-400', text: `${w.id}: ${w.name} — overdue`, action: '' }));
+
+  document.getElementById('alertsFeed').innerHTML = alerts.length ? alerts.map(a => `
+    <div class="flex items-start gap-3 p-2 rounded-lg bg-zinc-800/30 border border-zinc-800">
+      <i data-lucide="${a.icon}" class="w-4 h-4 ${a.color} mt-0.5 flex-shrink-0"></i>
+      <div class="flex-1 min-w-0">
+        <div class="text-xs text-zinc-300">${a.text}</div>
+        ${a.action || ''}
+      </div>
+    </div>
+  `).join('') : '<div class="text-xs text-zinc-500 font-mono text-center py-4">No active alerts</div>';
+
+  lucide.createIcons();
+}
+
+// ==================== PROJECTS ====================
+function renderProjects() {
+  const filter = document.getElementById('projectFilter').value;
+  const items = DB.projects.filter(p => filter === 'all' || p.status === filter);
+  document.getElementById('projectsList').innerHTML = items.length ? items.map(p => `
+    <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-5 hover:border-amber-500/50 hover:bg-zinc-800/80 hover:shadow-lg hover:shadow-amber-500/10 transition-all duration-300 cursor-pointer group" onclick="showProjectDetail('${p.id}')">
+      <div class="flex items-start justify-between mb-3">
+        <span class="text-xs px-2 py-0.5 rounded font-mono ${statusColor(p.status)}">${statusLabel(p.status)}</span>
+        <span class="text-xs px-2 py-0.5 rounded font-mono ${statusColor(p.priority)}">${statusLabel(p.priority)}</span>
+      </div>
+      <h4 class="font-mono font-bold text-zinc-100 text-sm mb-1 group-hover:text-amber-400 transition-colors">${p.name}</h4>
+      <p class="text-xs text-zinc-500 mb-3">${p.client} · ${p.lead}</p>
+      <div class="mb-3">
+        <div class="flex justify-between text-[10px] font-mono text-zinc-500 mb-1">
+          <span>Progress</span><span class="text-zinc-300">${p.progress}%</span>
+        </div>
+        <div class="w-full bg-zinc-800 rounded-full h-1.5"><div class="bg-amber-500 h-1.5 rounded-full progress-bar" style="width:${p.progress}%"></div></div>
+      </div>
+      <div class="flex items-center justify-between text-[10px] font-mono text-zinc-500">
+        <span>${formatDate(p.startDate)}</span>
+        <span>→</span>
+        <span>${formatDate(p.deadline)}</span>
+      </div>
+      <div class="mt-2 text-xs font-mono text-amber-500/70">${formatCurrency(p.budget)} budget</div>
+      <div class="h-0.5 bg-gradient-to-r from-amber-500 to-orange-500 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 mt-3 rounded-full origin-left"></div>
+    </div>
+  `).join('') : '<div class="col-span-full text-center text-zinc-500 font-mono py-12">No projects found</div>';
+  document.getElementById('projectFilter').onchange = renderProjects;
+  lucide.createIcons();
+}
+
+function showProjectDetail(id) {
+  const p = DB.projects.find(x => x.id === id);
+  if (!p) return;
+  const bomItems = DB.bom.filter(b => b.projectId === id);
+  const wos = DB.workOrders.filter(w => w.projectId === id);
+  const quote = DB.quotes.find(q => q.project === p.name);
+  document.getElementById('detailTitle').textContent = p.id + ' — ' + p.name;
+  document.getElementById('detailBody').innerHTML = `
+    <div class="grid grid-cols-2 gap-4 mb-4">
+      <div><span class="text-[10px] text-zinc-500 font-mono block">Client</span><span class="text-sm text-zinc-100">${p.client}</span></div>
+      <div><span class="text-[10px] text-zinc-500 font-mono block">Lead</span><span class="text-sm text-zinc-100">${p.lead}</span></div>
+      <div><span class="text-[10px] text-zinc-500 font-mono block">Status</span><span class="text-xs px-2 py-0.5 rounded font-mono ${statusColor(p.status)}">${statusLabel(p.status)}</span></div>
+      <div><span class="text-[10px] text-zinc-500 font-mono block">Budget</span><span class="text-sm text-amber-500 font-mono">${formatCurrency(p.budget)}</span></div>
+      <div><span class="text-[10px] text-zinc-500 font-mono block">Start</span><span class="text-sm text-zinc-100">${formatDate(p.startDate)}</span></div>
+      <div><span class="text-[10px] text-zinc-500 font-mono block">Deadline</span><span class="text-sm text-zinc-100">${formatDate(p.deadline)}</span></div>
+    </div>
+    <div class="mb-4">
+      <div class="flex justify-between text-xs font-mono text-zinc-500 mb-1"><span>Progress</span><span>${p.progress}%</span></div>
+      <div class="w-full bg-zinc-800 rounded-full h-2"><div class="bg-amber-500 h-2 rounded-full progress-bar" style="width:${p.progress}%"></div></div>
+    </div>
+    <div class="mb-4"><span class="text-[10px] text-zinc-500 font-mono block mb-1">Description</span><p class="text-xs text-zinc-300 leading-relaxed">${p.description}</p></div>
+    ${bomItems.length ? `
+    <div class="mb-4">
+      <span class="text-[10px] text-zinc-500 font-mono block mb-2">BOM (${bomItems.length} items)</span>
+      <div class="space-y-1">
+        ${bomItems.map(b => {
+          const inv = DB.inventory.find(i => i.id === b.invId);
+          return `<div class="flex items-center justify-between text-xs bg-zinc-800 rounded px-3 py-1.5">
+            <span class="text-zinc-300 font-mono">${b.refDes}</span>
+            <span class="text-zinc-400 flex-1 ml-3">${b.partName}</span>
+            <span class="text-zinc-500 font-mono">×${b.qty}</span>
+            ${inv ? `<span class="ml-3 font-mono ${inv.qty >= b.qty ? 'text-green-400' : 'text-red-400'}">${inv.qty >= b.qty ? '✓ In stock' : '✗ Low'}</span>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>` : ''}
+    ${wos.length ? `
+    <div>
+      <span class="text-[10px] text-zinc-500 font-mono block mb-2">Work Orders (${wos.length})</span>
+      <div class="space-y-1">
+        ${wos.map(w => `<div class="flex items-center justify-between text-xs bg-zinc-800 rounded px-3 py-1.5">
+          <span class="text-zinc-300 font-mono">${w.id}</span>
+          <span class="text-zinc-400 flex-1 ml-3">${w.name}</span>
+          <span class="text-xs px-2 py-0.5 rounded font-mono ${statusColor(w.status)}">${statusLabel(w.status)}</span>
+        </div>`).join('')}
+      </div>
+    </div>` : ''}
+  `;
+  document.getElementById('detailOverlay').classList.add('open');
+  lucide.createIcons();
+}
+
+// ==================== BOM ====================
+function renderBOMSelect() {
+  const sel = document.getElementById('bomProjectSelect');
+  const val = sel.value;
+  sel.innerHTML = '<option value="">Select a project...</option>' +
+    DB.projects.map(p => `<option value="${p.id}" ${p.id === val ? 'selected' : ''}>${p.id}: ${p.name}</option>`).join('');
+}
+
+function renderBOM() {
+  const projId = document.getElementById('bomProjectSelect').value;
+  const summaryEl = document.getElementById('bomSummary');
+  const tableEl = document.getElementById('bomTable');
+  if (!projId) { summaryEl.style.display = 'none'; tableEl.innerHTML = '<div class="text-center text-zinc-500 font-mono py-12">Select a project to view its BOM</div>'; return; }
+  const items = DB.bom.filter(b => b.projectId === projId);
+  if (!items.length) { summaryEl.style.display = 'none'; tableEl.innerHTML = '<div class="text-center text-zinc-500 font-mono py-12">No BOM items for this project</div>'; return; }
+  summaryEl.style.display = 'grid';
+  let totalCost = 0; let allInStock = true;
+  items.forEach(b => { const inv = DB.inventory.find(i => i.id === b.invId); if (inv) { totalCost += inv.unitCost * b.qty; if (inv.qty < b.qty) allInStock = false; } });
+  document.getElementById('bomTotalParts').textContent = items.length;
+  document.getElementById('bomUnitCost').textContent = '$' + totalCost.toFixed(2);
+  const stockEl = document.getElementById('bomStockStatus');
+  stockEl.textContent = allInStock ? 'All Available' : 'Shortages';
+  stockEl.className = 'font-mono font-bold text-xl ' + (allInStock ? 'text-green-400' : 'text-red-400');
+
+  tableEl.innerHTML = `
+    <table class="w-full text-xs">
+      <thead class="bg-zinc-800"><tr>
+        <th class="text-left px-4 py-3 text-zinc-500 font-mono font-normal">Ref Des</th>
+        <th class="text-left px-4 py-3 text-zinc-500 font-mono font-normal">Part</th>
+        <th class="text-right px-4 py-3 text-zinc-500 font-mono font-normal">Qty</th>
+        <th class="text-right px-4 py-3 text-zinc-500 font-mono font-normal">Unit Cost</th>
+        <th class="text-right px-4 py-3 text-zinc-500 font-mono font-normal">Ext. Cost</th>
+        <th class="text-center px-4 py-3 text-zinc-500 font-mono font-normal">Stock</th>
+        <th class="text-left px-4 py-3 text-zinc-500 font-mono font-normal">Notes</th>
+        <th class="px-4 py-3"></th>
+      </tr></thead>
+      <tbody>${items.map(b => {
+        const inv = DB.inventory.find(i => i.id === b.invId);
+        const uc = inv ? inv.unitCost : 0;
+        const inStock = inv ? inv.qty >= b.qty : false;
+        return `<tr class="border-t border-zinc-800 hover:bg-zinc-800/50">
+          <td class="px-4 py-3 font-mono text-amber-400">${b.refDes}</td>
+          <td class="px-4 py-3 text-zinc-300">${b.partName}</td>
+          <td class="px-4 py-3 text-right font-mono text-zinc-100">${b.qty}</td>
+          <td class="px-4 py-3 text-right font-mono text-zinc-400">${inv ? '$' + uc.toFixed(2) : '—'}</td>
+          <td class="px-4 py-3 text-right font-mono text-zinc-100">${inv ? '$' + (uc * b.qty).toFixed(2) : '—'}</td>
+          <td class="px-4 py-3 text-center"><span class="inline-block w-2 h-2 rounded-full ${inStock ? 'bg-green-400' : 'bg-red-400'}"></span></td>
+          <td class="px-4 py-3 text-zinc-500 max-w-[200px] truncate">${b.notes || ''}</td>
+          <td class="px-4 py-3"><button class="text-zinc-600 hover:text-red-400 transition-colors" onclick="deleteBOMItem('${b.id}')"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button></td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>
+  `;
+  lucide.createIcons();
+}
+
+function deleteBOMItem(id) {
+  DB.bom = DB.bom.filter(b => b.id !== id);
+  saveDB(); renderBOM();
+}
+
+// ==================== INVENTORY ====================
+function renderInventory() {
+  const cat = document.getElementById('invCategoryFilter').value;
+  const lowOnly = document.getElementById('lowStockOnly').checked;
+  let items = DB.inventory;
+  if (cat !== 'all') items = items.filter(i => i.category === cat);
+  if (lowOnly) items = items.filter(i => i.qty <= i.minQty);
+  document.getElementById('inventoryTable').innerHTML = `
+    <table class="w-full text-xs">
+      <thead class="bg-zinc-800"><tr>
+        <th class="text-left px-4 py-3 text-zinc-500 font-mono font-normal">SKU</th>
+        <th class="text-left px-4 py-3 text-zinc-500 font-mono font-normal">Name</th>
+        <th class="text-left px-4 py-3 text-zinc-500 font-mono font-normal">Category</th>
+        <th class="text-right px-4 py-3 text-zinc-500 font-mono font-normal">Qty</th>
+        <th class="text-right px-4 py-3 text-zinc-500 font-mono font-normal">Min</th>
+        <th class="text-right px-4 py-3 text-zinc-500 font-mono font-normal">Unit Cost</th>
+        <th class="text-right px-4 py-3 text-zinc-500 font-mono font-normal">Value</th>
+        <th class="text-left px-4 py-3 text-zinc-500 font-mono font-normal">Location</th>
+      </tr></thead>
+      <tbody>${items.map(i => {
+        const isLow = i.qty <= i.minQty;
+        return `<tr class="border-t border-zinc-800 hover:bg-zinc-800/50 ${isLow ? 'bg-red-500/5' : ''}">
+          <td class="px-4 py-3 font-mono text-amber-400">${i.sku}</td>
+          <td class="px-4 py-3 text-zinc-300">${i.name}</td>
+          <td class="px-4 py-3"><span class="text-xs px-2 py-0.5 bg-zinc-800 text-zinc-400 rounded font-mono">${i.category.replace('_', ' ')}</span></td>
+          <td class="px-4 py-3 text-right font-mono ${isLow ? 'text-red-400 font-bold' : 'text-zinc-100'}">${i.qty} ${i.unit}</td>
+          <td class="px-4 py-3 text-right font-mono text-zinc-500">${i.minQty}</td>
+          <td class="px-4 py-3 text-right font-mono text-zinc-400">$${i.unitCost.toFixed(2)}</td>
+          <td class="px-4 py-3 text-right font-mono text-zinc-100">${formatCurrency(i.qty * i.unitCost)}</td>
+          <td class="px-4 py-3 text-zinc-500 font-mono">${i.location}</td>
+        </tr>`;
+      }).join('')}
+      ${items.length ? `<tr class="border-t-2 border-zinc-700 bg-zinc-800/50">
+        <td colspan="6" class="px-4 py-3 text-right font-mono text-zinc-400 font-bold">Total Value</td>
+        <td class="px-4 py-3 text-right font-mono text-amber-500 font-bold">${formatCurrency(items.reduce((s, i) => s + i.qty * i.unitCost, 0))}</td>
+        <td></td>
+      </tr>` : ''}
+      </tbody>
+    </table>
+  `;
+  document.getElementById('invCategoryFilter').onchange = renderInventory;
+  lucide.createIcons();
+}
+
+// ==================== PROCUREMENT ====================
+function renderProcurement() {
+  const filter = document.getElementById('poStatusFilter').value;
+  let items = DB.purchaseOrders;
+  if (filter !== 'all') items = items.filter(p => p.status === filter);
+  document.getElementById('poList').innerHTML = items.length ? items.map(po => `
+    <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-5 hover:border-amber-500/50 transition-all duration-300">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-3">
+          <span class="font-mono font-bold text-zinc-100">${po.id}</span>
+          <span class="text-xs px-2 py-0.5 rounded font-mono ${statusColor(po.status)}">${statusLabel(po.status)}</span>
+        </div>
+        <span class="font-mono font-bold text-amber-500">${formatCurrency(po.total)}</span>
+      </div>
+      <div class="flex items-center gap-4 text-xs text-zinc-500 font-mono mb-3">
+        <span><i data-lucide="building-2" class="w-3 h-3 inline mr-1"></i>${po.supplier}</span>
+        <span><i data-lucide="calendar" class="w-3 h-3 inline mr-1"></i>${formatDate(po.date)}</span>
+        ${po.expectedDelivery ? `<span><i data-lucide="truck" class="w-3 h-3 inline mr-1"></i>ETA: ${formatDate(po.expectedDelivery)}</span>` : ''}
+      </div>
+      <div class="space-y-1">
+        ${po.items.map(item => `<div class="flex items-center justify-between text-xs bg-zinc-800 rounded px-3 py-1.5">
+          <span class="text-zinc-300">${item.name}</span>
+          <span class="font-mono text-zinc-400">${item.qty} × $${item.unitCost.toFixed(2)} = $${(item.qty * item.unitCost).toFixed(2)}</span>
+        </div>`).join('')}
+      </div>
+    </div>
+  `).join('') : '<div class="text-center text-zinc-500 font-mono py-12">No purchase orders found</div>';
+  lucide.createIcons();
+}
+
+// ==================== MANUFACTURING ====================
+function renderManufacturing() {
+  const filter = document.getElementById('woStatusFilter').value;
+  let items = DB.workOrders;
+  if (filter !== 'all') items = items.filter(w => w.status === filter);
+  document.getElementById('woList').innerHTML = items.length ? items.map(w => {
+    const pct = w.qty > 0 ? Math.round((w.completed / w.qty) * 100) : 0;
+    const isOverdue = w.status !== 'completed' && new Date(w.dueDate) < new Date();
+    return `
+    <div class="bg-zinc-900 border ${isOverdue ? 'border-red-500/50' : 'border-zinc-700'} rounded-lg p-5 hover:border-amber-500/50 transition-all duration-300">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-3">
+          <span class="font-mono font-bold text-zinc-100">${w.id}</span>
+          <span class="text-xs px-2 py-0.5 rounded font-mono ${statusColor(w.status)}">${statusLabel(w.status)}</span>
+          <span class="text-xs px-2 py-0.5 rounded font-mono ${statusColor(w.priority)}">${statusLabel(w.priority)}</span>
+          ${isOverdue ? '<span class="text-xs px-2 py-0.5 rounded font-mono bg-red-500/20 text-red-400">OVERDUE</span>' : ''}
+        </div>
+        <span class="text-xs text-zinc-500 font-mono">${w.station}</span>
+      </div>
+      <h4 class="font-mono text-zinc-100 text-sm mb-2">${w.name}</h4>
+      <div class="flex items-center gap-4 text-xs text-zinc-500 font-mono mb-3">
+        <span><i data-lucide="user" class="w-3 h-3 inline mr-1"></i>${w.assignee}</span>
+        <span><i data-lucide="calendar" class="w-3 h-3 inline mr-1"></i>${formatDate(w.startDate)} → ${formatDate(w.dueDate)}</span>
+        <span>Project: ${w.projectId}</span>
+      </div>
+      <div class="mb-2">
+        <div class="flex justify-between text-[10px] font-mono text-zinc-500 mb-1">
+          <span>Units: ${w.completed}/${w.qty}</span><span>${pct}%</span>
+        </div>
+        <div class="w-full bg-zinc-800 rounded-full h-1.5"><div class="${pct === 100 ? 'bg-green-500' : 'bg-amber-500'} h-1.5 rounded-full progress-bar" style="width:${pct}%"></div></div>
+      </div>
+      <p class="text-[11px] text-zinc-500 mt-2">${w.notes}</p>
+    </div>`;
+  }).join('') : '<div class="text-center text-zinc-500 font-mono py-12">No work orders found</div>';
+  lucide.createIcons();
+}
+
+// ==================== QUOTES & ORDERS ====================
+function toggleQuoteView(view) {
+  quoteView = view;
+  document.getElementById('btnQuotes').className = 'text-xs font-mono px-3 py-1.5 rounded-lg transition-colors ' + (view === 'quotes' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30' : 'bg-zinc-700 text-zinc-300');
+  document.getElementById('btnOrders').className = 'text-xs font-mono px-3 py-1.5 rounded-lg transition-colors ' + (view === 'orders' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30' : 'bg-zinc-700 text-zinc-300');
+  document.getElementById('newQuoteBtn').textContent = view === 'quotes' ? 'New Quote' : 'New Order';
+  renderQuotesOrders();
+}
+
+function renderQuotesOrders() {
+  const items = DB.quotes.filter(q => (quoteView === 'quotes' ? q.type === 'quote' : q.type === 'order'));
+  document.getElementById('quotesOrdersList').innerHTML = items.length ? items.map(q => `
+    <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-5 hover:border-amber-500/50 transition-all duration-300">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-3">
+          <span class="font-mono font-bold text-zinc-100">${q.id}</span>
+          <span class="text-xs px-2 py-0.5 rounded font-mono ${statusColor(q.status)}">${statusLabel(q.status)}</span>
+        </div>
+        <span class="font-mono font-bold text-amber-500 text-lg">${formatCurrency(q.total)}</span>
+      </div>
+      <div class="flex items-center gap-4 text-xs text-zinc-500 font-mono mb-3">
+        <span><i data-lucide="building-2" class="w-3 h-3 inline mr-1"></i>${q.client}</span>
+        <span><i data-lucide="folder" class="w-3 h-3 inline mr-1"></i>${q.project}</span>
+        <span><i data-lucide="calendar" class="w-3 h-3 inline mr-1"></i>${formatDate(q.date)}</span>
+        ${q.validUntil ? `<span>Valid until: ${formatDate(q.validUntil)}</span>` : ''}
+      </div>
+      <div class="space-y-1 mb-3">
+        ${q.items.map(item => `<div class="flex items-center justify-between text-xs bg-zinc-800 rounded px-3 py-1.5">
+          <span class="text-zinc-300">${item.desc}</span>
+          <span class="font-mono text-zinc-400">${item.qty} × ${formatCurrency(item.unitPrice)} = ${formatCurrency(item.qty * item.unitPrice)}</span>
+        </div>`).join('')}
+      </div>
+      ${q.notes ? `<p class="text-[11px] text-zinc-500">${q.notes}</p>` : ''}
+    </div>
+  `).join('') : '<div class="text-center text-zinc-500 font-mono py-12">No ' + quoteView + ' found</div>';
+  lucide.createIcons();
+}
+
+// ==================== CONTACTS ====================
+function toggleContactView(view) {
+  contactView = view;
+  document.getElementById('btnCustomers').className = 'text-xs font-mono px-3 py-1.5 rounded-lg transition-colors ' + (view === 'customers' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30' : 'bg-zinc-700 text-zinc-300');
+  document.getElementById('btnSuppliers').className = 'text-xs font-mono px-3 py-1.5 rounded-lg transition-colors ' + (view === 'suppliers' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30' : 'bg-zinc-700 text-zinc-300');
+  renderContacts();
+}
+
+function renderContacts() {
+  const type = contactView === 'customers' ? 'customer' : 'supplier';
+  const items = DB.contacts.filter(c => c.type === type);
+  document.getElementById('contactsList').innerHTML = items.length ? items.map(c => `
+    <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-5 hover:border-amber-500/50 hover:bg-zinc-800/80 hover:shadow-lg hover:shadow-amber-500/10 transition-all duration-300 group">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500 font-mono font-bold text-sm">${c.name.split(' ').map(w=>w[0]).join('').slice(0,2)}</div>
+        <div>
+          <h4 class="font-mono font-bold text-zinc-100 text-sm group-hover:text-amber-400 transition-colors">${c.name}</h4>
+          <p class="text-[10px] text-zinc-500">${c.contact}</p>
+        </div>
+      </div>
+      <div class="space-y-1.5 text-xs">
+        <div class="flex items-center gap-2 text-zinc-400"><i data-lucide="mail" class="w-3 h-3"></i> ${c.email}</div>
+        <div class="flex items-center gap-2 text-zinc-400"><i data-lucide="phone" class="w-3 h-3"></i> ${c.phone}</div>
+        <div class="flex items-center gap-2 text-zinc-400"><i data-lucide="map-pin" class="w-3 h-3"></i> ${c.address}</div>
+      </div>
+      ${c.type === 'customer' && c.revenue > 0 ? `<div class="mt-3 pt-3 border-t border-zinc-800 flex justify-between items-center"><span class="text-[10px] text-zinc-500 font-mono">Revenue</span><span class="font-mono text-amber-500 text-sm font-bold">${formatCurrency(c.revenue)}</span></div>` : ''}
+      ${c.notes ? `<p class="text-[10px] text-zinc-600 mt-2">${c.notes}</p>` : ''}
+      <div class="h-0.5 bg-gradient-to-r from-amber-500 to-orange-500 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 mt-3 rounded-full origin-left"></div>
+    </div>
+  `).join('') : '<div class="col-span-full text-center text-zinc-500 font-mono py-12">No contacts found</div>';
+  lucide.createIcons();
+}
+
+// ==================== MODAL SYSTEM ====================
+let modalType = '';
+
+function openModal(type) {
+  modalType = type;
+  const title = { project: 'New Project', bomItem: 'Add BOM Item', inventoryItem: 'Add Inventory Item', purchaseOrder: 'New Purchase Order', workOrder: 'New Work Order', quote: quoteView === 'quotes' ? 'New Quote' : 'New Order', contact: contactView === 'customers' ? 'New Customer' : 'New Supplier' };
+  document.getElementById('modalTitle').textContent = title[type] || 'New Item';
+
+  let html = '';
+  const inp = (label, id, type='text', placeholder='') => `<div class="mb-3"><label class="text-xs text-zinc-500 font-mono block mb-1">${label}</label><input type="${type}" id="modal-${id}" placeholder="${placeholder}" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 font-mono text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-amber-500 focus:outline-none"></div>`;
+  const sel = (label, id, options) => `<div class="mb-3"><label class="text-xs text-zinc-500 font-mono block mb-1">${label}</label><select id="modal-${id}" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 font-mono text-sm text-zinc-100 focus:border-amber-500 focus:outline-none">${options.map(o => `<option value="${o.v}">${o.l}</option>`).join('')}</select></div>`;
+  const ta = (label, id, placeholder='') => `<div class="mb-3"><label class="text-xs text-zinc-500 font-mono block mb-1">${label}</label><textarea id="modal-${id}" placeholder="${placeholder}" rows="3" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 font-mono text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-amber-500 focus:outline-none resize-none"></textarea></div>`;
+
+  switch(type) {
+    case 'project':
+      html = inp('Project Name', 'name', 'text', 'e.g. Smart Widget v2') +
+        inp('Client', 'client', 'text', 'Company name') +
+        sel('Status', 'status', [{v:'planning',l:'Planning'},{v:'design',l:'Design'},{v:'prototyping',l:'Prototyping'},{v:'testing',l:'Testing'},{v:'production',l:'Production'}]) +
+        sel('Priority', 'priority', [{v:'high',l:'High'},{v:'medium',l:'Medium'},{v:'low',l:'Low'}]) +
+        inp('Lead Engineer', 'lead', 'text', 'Name') +
+        `<div class="grid grid-cols-2 gap-3">${inp('Start Date', 'startDate', 'date')}${inp('Deadline', 'deadline', 'date')}</div>` +
+        inp('Budget ($)', 'budget', 'number', '0') +
+        ta('Description', 'description', 'Project details...');
+      break;
+    case 'bomItem':
+      html = sel('Project', 'projectId', DB.projects.map(p => ({v:p.id, l:p.id+': '+p.name}))) +
+        sel('Inventory Item', 'invId', DB.inventory.map(i => ({v:i.id, l:i.sku+': '+i.name}))) +
+        inp('Quantity', 'qty', 'number', '1') +
+        inp('Reference Designator', 'refDes', 'text', 'e.g. U1, R1-R4') +
+        inp('Notes', 'notes', 'text', 'Optional notes');
+      break;
+    case 'inventoryItem':
+      html = inp('Name', 'name', 'text', 'Component name') +
+        inp('SKU', 'sku', 'text', 'e.g. MCU-STM32-407') +
+        sel('Category', 'category', [{v:'electronic',l:'Electronic'},{v:'mechanical',l:'Mechanical'},{v:'fastener',l:'Fastener'},{v:'raw_material',l:'Raw Material'},{v:'pcb',l:'PCB'},{v:'tooling',l:'Tooling'}]) +
+        `<div class="grid grid-cols-3 gap-3">${inp('Qty', 'qty', 'number', '0')}${inp('Min Qty', 'minQty', 'number', '0')}${inp('Unit', 'unit', 'text', 'pcs')}</div>` +
+        inp('Unit Cost ($)', 'unitCost', 'number', '0.00') +
+        inp('Location', 'location', 'text', 'e.g. Bin A-12') +
+        inp('Supplier', 'supplier', 'text', 'Supplier name');
+      break;
+    case 'purchaseOrder':
+      html = sel('Supplier', 'supplier', [...new Set(DB.contacts.filter(c=>c.type==='supplier').map(c=>c.name))].map(s=>({v:s,l:s}))) +
+        sel('Status', 'status', [{v:'draft',l:'Draft'},{v:'sent',l:'Sent'},{v:'confirmed',l:'Confirmed'}]) +
+        inp('Expected Delivery', 'expectedDelivery', 'date') +
+        `<div class="mb-3"><label class="text-xs text-zinc-500 font-mono block mb-1">Items (one per line: invId, qty)</label><textarea id="modal-items" rows="3" placeholder="INV-001, 10&#10;INV-002, 5" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 font-mono text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-amber-500 focus:outline-none resize-none"></textarea></div>`;
+      break;
+    case 'workOrder':
+      html = sel('Project', 'projectId', DB.projects.map(p => ({v:p.id, l:p.id+': '+p.name}))) +
+        inp('Name', 'name', 'text', 'Work order description') +
+        sel('Station', 'station', [{v:'3D Printing',l:'3D Printing'},{v:'CNC Milling',l:'CNC Milling'},{v:'PCB Assembly',l:'PCB Assembly'},{v:'Test Bench',l:'Test Bench'}]) +
+        sel('Priority', 'priority', [{v:'high',l:'High'},{v:'medium',l:'Medium'},{v:'low',l:'Low'}]) +
+        inp('Quantity', 'qty', 'number', '1') +
+        inp('Assignee', 'assignee', 'text', 'Name') +
+        `<div class="grid grid-cols-2 gap-3">${inp('Start Date', 'startDate', 'date')}${inp('Due Date', 'dueDate', 'date')}</div>` +
+        ta('Notes', 'notes', 'Work instructions...');
+      break;
+    case 'quote':
+      html = sel('Client', 'client', DB.contacts.filter(c=>c.type==='customer').map(c=>({v:c.name,l:c.name}))) +
+        inp('Project', 'project', 'text', 'Project name') +
+        (quoteView === 'quotes' ? inp('Valid Until', 'validUntil', 'date') : '') +
+        `<div class="mb-3"><label class="text-xs text-zinc-500 font-mono block mb-1">Line Items (one per line: description, qty, unit price)</label><textarea id="modal-lineItems" rows="4" placeholder="Engineering Design, 1, 15000&#10;Prototype Build, 3, 5000" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 font-mono text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-amber-500 focus:outline-none resize-none"></textarea></div>` +
+        ta('Notes', 'notes', 'Additional notes...');
+      break;
+    case 'contact':
+      html = inp('Company Name', 'name', 'text', 'Company name') +
+        inp('Contact Person', 'contact', 'text', 'Name') +
+        inp('Email', 'email', 'email', 'email@example.com') +
+        inp('Phone', 'phone', 'tel', '+1 (555) 000-0000') +
+        inp('Address', 'address', 'text', 'City, State') +
+        ta('Notes', 'notes', 'Additional notes...');
+      break;
+  }
+
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('modalOverlay').classList.add('open');
+  document.getElementById('modalSave').onclick = saveModalData;
+  lucide.createIcons();
+}
+
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+function closeDetail() { document.getElementById('detailOverlay').classList.remove('open'); }
+
+function getVal(id) { const el = document.getElementById('modal-' + id); return el ? el.value.trim() : ''; }
+
+function saveModalData() {
+  switch(modalType) {
+    case 'project':
+      DB.projects.push({ id: nextId(DB.projects, 'PRJ'), name: getVal('name'), client: getVal('client'), status: getVal('status'), priority: getVal('priority'), lead: getVal('lead'), startDate: getVal('startDate'), deadline: getVal('deadline'), progress: 0, description: getVal('description'), budget: parseFloat(getVal('budget')) || 0 });
+      break;
+    case 'bomItem':
+      const inv = DB.inventory.find(i => i.id === getVal('invId'));
+      DB.bom.push({ id: nextId(DB.bom, 'BOM'), projectId: getVal('projectId'), invId: getVal('invId'), partName: inv ? inv.name : '', qty: parseFloat(getVal('qty')) || 1, refDes: getVal('refDes'), notes: getVal('notes') });
+      break;
+    case 'inventoryItem':
+      DB.inventory.push({ id: nextId(DB.inventory, 'INV'), name: getVal('name'), sku: getVal('sku'), category: getVal('category'), qty: parseInt(getVal('qty')) || 0, minQty: parseInt(getVal('minQty')) || 0, unit: getVal('unit') || 'pcs', unitCost: parseFloat(getVal('unitCost')) || 0, location: getVal('location'), supplier: getVal('supplier') });
+      break;
+    case 'purchaseOrder': {
+      const lines = document.getElementById('modal-items').value.split('\n').filter(l => l.trim());
+      const poItems = lines.map(l => { const parts = l.split(',').map(s => s.trim()); const inv = DB.inventory.find(i => i.id === parts[0]); return { invId: parts[0], name: inv ? inv.name : parts[0], qty: parseInt(parts[1]) || 1, unitCost: inv ? inv.unitCost : 0 }; });
+      const total = poItems.reduce((s, i) => s + i.qty * i.unitCost, 0);
+      DB.purchaseOrders.push({ id: nextId(DB.purchaseOrders, 'PO'), supplier: getVal('supplier'), items: poItems, status: getVal('status'), date: new Date().toISOString().split('T')[0], expectedDelivery: getVal('expectedDelivery'), total });
+      break;
+    }
+    case 'workOrder':
+      DB.workOrders.push({ id: nextId(DB.workOrders, 'WO'), projectId: getVal('projectId'), name: getVal('name'), station: getVal('station'), status: 'queued', priority: getVal('priority'), qty: parseInt(getVal('qty')) || 1, completed: 0, assignee: getVal('assignee'), startDate: getVal('startDate'), dueDate: getVal('dueDate'), notes: getVal('notes') });
+      break;
+    case 'quote': {
+      const lines = document.getElementById('modal-lineItems').value.split('\n').filter(l => l.trim());
+      const qItems = lines.map(l => { const parts = l.split(',').map(s => s.trim()); return { desc: parts[0] || '', qty: parseInt(parts[1]) || 1, unitPrice: parseFloat(parts[2]) || 0 }; });
+      const total = qItems.reduce((s, i) => s + i.qty * i.unitPrice, 0);
+      DB.quotes.push({ id: nextId(DB.quotes, quoteView === 'quotes' ? 'QUO' : 'ORD'), client: getVal('client'), project: getVal('project'), type: quoteView === 'quotes' ? 'quote' : 'order', status: 'draft', date: new Date().toISOString().split('T')[0], validUntil: getVal('validUntil') || undefined, items: qItems, total, notes: getVal('notes') });
+      break;
+    }
+    case 'contact':
+      DB.contacts.push({ id: nextId(DB.contacts, contactView === 'customers' ? 'CON' : 'SUP'), type: contactView === 'customers' ? 'customer' : 'supplier', name: getVal('name'), contact: getVal('contact'), email: getVal('email'), phone: getVal('phone'), address: getVal('address'), notes: getVal('notes'), revenue: 0 });
+      break;
+  }
+  saveDB();
+  closeModal();
+  renderTab(currentTab);
+}
+
+// ==================== GLOBAL SEARCH ====================
+document.getElementById('globalSearch').addEventListener('input', (e) => {
+  const q = e.target.value.toLowerCase();
+  if (!q) { renderTab(currentTab); return; }
+  // Simple global search — switch to relevant tab if match found
+  const projMatch = DB.projects.find(p => p.name.toLowerCase().includes(q) || p.id.toLowerCase().includes(q));
+  if (projMatch) { switchTab('projects'); return; }
+  const invMatch = DB.inventory.find(i => i.name.toLowerCase().includes(q) || i.sku.toLowerCase().includes(q));
+  if (invMatch) { switchTab('inventory'); return; }
+  const conMatch = DB.contacts.find(c => c.name.toLowerCase().includes(q));
+  if (conMatch) { switchTab('contacts'); return; }
+});
+
+// ==================== INIT ====================
+function init() {
+  loadDB();
+  renderDashboard();
+  lucide.createIcons();
+}
+
+// Close modals on escape
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeModal(); closeDetail(); } });
+// Close modals on overlay click
+document.getElementById('modalOverlay').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeModal(); });
+document.getElementById('detailOverlay').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeDetail(); });
+
+init();
+
+// ==================== PWA SERVICE WORKER ====================
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
