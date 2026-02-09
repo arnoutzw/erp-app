@@ -484,11 +484,31 @@ const DB = {
     { id: 'ORD-003', client: 'MapDynamics', project: 'LiDAR Scanner Module', type: 'order', status: 'delivered', date: '2025-05-10', items: [{ desc: 'LiDAR Module — Production Unit', qty: 5, unitPrice: 12000 }, { desc: 'Integration Support', qty: 1, unitPrice: 5000 }], total: 65000, notes: 'All 5 units delivered. Support contract active.' },
   ],
   invoices: [
-    { id: 'INVC-001', number: 'INV-1001', status: 'paid', date: '2025-10-20', dueDate: '2025-11-20', from: { name: 'ForgeERP Engineering', address: '742 Innovation Drive, Portland, OR 97201', email: 'billing@forgeerp.com' }, to: { name: 'DataVault Solutions', address: 'Seattle, WA', email: 'mobrien@datavault.com' }, items: [{ description: 'Smart PDU 20A 3-Phase', quantity: 10, rate: 4200 }], taxRate: 0, notes: 'Payment received. Thank you.', createdAt: '2025-10-20T10:00:00Z' },
-    { id: 'INVC-002', number: 'INV-1002', status: 'sent', date: '2026-01-15', dueDate: '2026-02-15', from: { name: 'ForgeERP Engineering', address: '742 Innovation Drive, Portland, OR 97201', email: 'billing@forgeerp.com' }, to: { name: 'AutomateX Labs', address: 'Austin, TX', email: 'lwei@automatex.com' }, items: [{ description: 'Robotic Arm v3 Complete Unit', quantity: 2, rate: 45000 }, { description: 'Spare Parts Kit', quantity: 2, rate: 3500 }], taxRate: 8.5, notes: 'Net 30. Please reference invoice number on payment.', createdAt: '2026-01-15T09:00:00Z' },
-    { id: 'INVC-003', number: 'INV-1003', status: 'draft', date: '2026-02-05', dueDate: '2026-03-07', from: { name: 'ForgeERP Engineering', address: '742 Innovation Drive, Portland, OR 97201', email: 'billing@forgeerp.com' }, to: { name: 'MapDynamics', address: 'San Jose, CA', email: 'thessler@mapdynamics.com' }, items: [{ description: 'LiDAR Module — Production Unit', quantity: 5, rate: 12000 }, { description: 'Integration Support', quantity: 1, rate: 5000 }], taxRate: 8.5, notes: 'Final invoice for LiDAR project delivery.', createdAt: '2026-02-05T14:00:00Z' },
-    { id: 'INVC-004', number: 'INV-1004', status: 'sent', date: '2026-01-20', dueDate: '2026-02-20', from: { name: 'ForgeERP Engineering', address: '742 Innovation Drive, Portland, OR 97201', email: 'billing@forgeerp.com' }, to: { name: 'SkyTech Industries', address: 'San Francisco, CA', email: 'dkowalski@skytech.io' }, items: [{ description: 'Engineering & Design — AeroSense', quantity: 1, rate: 35000 }, { description: 'Prototype Build (3 units)', quantity: 3, rate: 8500 }], taxRate: 0, notes: 'Milestone 1 billing. Prototype delivery pending.', createdAt: '2026-01-20T11:00:00Z' },
-    { id: 'INVC-005', number: 'INV-1005', status: 'paid', date: '2025-05-15', dueDate: '2025-06-15', from: { name: 'ForgeERP Engineering', address: '742 Innovation Drive, Portland, OR 97201', email: 'billing@forgeerp.com' }, to: { name: 'MapDynamics', address: 'San Jose, CA', email: 'thessler@mapdynamics.com' }, items: [{ description: 'LiDAR Scanner Module — Development', quantity: 1, rate: 45000 }, { description: 'Testing & Calibration', quantity: 1, rate: 15000 }], taxRate: 0, notes: 'Development phase completed. Payment received.', createdAt: '2025-05-15T08:00:00Z' },
+    { id: 'INVC-001', number: 'INV-1001', status: 'paid', date: '2025-10-20', dueDate: '2025-11-20', deliveryDate: '2025-10-18',
+      from: { name: 'ForgeERP Engineering B.V.', address: 'Keizersgracht 742, 1017 EW Amsterdam', email: 'billing@forgeerp.nl', vatId: 'NL862345679B01', kvkNumber: '82345679' },
+      to: { name: 'DataVault Solutions B.V.', address: 'Herengracht 100, 1015 BS Amsterdam', email: 'mobrien@datavault.nl', vatNumber: 'NL854321098B01' },
+      items: [{ description: 'Smart PDU 20A 3-Phase', quantity: 10, rate: 4200, vatRate: 21 }],
+      notes: 'Betaling ontvangen. Dank u wel.', createdAt: '2025-10-20T10:00:00Z' },
+    { id: 'INVC-002', number: 'INV-1002', status: 'sent', date: '2026-01-15', dueDate: '2026-02-15', deliveryDate: '2026-01-10',
+      from: { name: 'ForgeERP Engineering B.V.', address: 'Keizersgracht 742, 1017 EW Amsterdam', email: 'billing@forgeerp.nl', vatId: 'NL862345679B01', kvkNumber: '82345679' },
+      to: { name: 'AutomateX Labs GmbH', address: 'Friedrichstraße 50, 10117 Berlin, Germany', email: 'lwei@automatex.de', vatNumber: 'DE312345678' },
+      items: [{ description: 'Robotic Arm v3 Complete Unit', quantity: 2, rate: 45000, vatRate: 0 }, { description: 'Spare Parts Kit', quantity: 2, rate: 3500, vatRate: 0 }],
+      notes: 'Intracommunautaire levering — BTW verlegd. Net 30. Please reference invoice number on payment.', createdAt: '2026-01-15T09:00:00Z' },
+    { id: 'INVC-003', number: 'INV-1003', status: 'draft', date: '2026-02-05', dueDate: '2026-03-07', deliveryDate: '',
+      from: { name: 'ForgeERP Engineering B.V.', address: 'Keizersgracht 742, 1017 EW Amsterdam', email: 'billing@forgeerp.nl', vatId: 'NL862345679B01', kvkNumber: '82345679' },
+      to: { name: 'MapDynamics B.V.', address: 'Stationsplein 45, 3013 AK Rotterdam', email: 'thessler@mapdynamics.nl', vatNumber: 'NL867890123B01' },
+      items: [{ description: 'LiDAR Module — Production Unit', quantity: 5, rate: 12000, vatRate: 21 }, { description: 'Integration Support', quantity: 1, rate: 5000, vatRate: 21 }],
+      notes: 'Eindfactuur voor LiDAR project levering.', createdAt: '2026-02-05T14:00:00Z' },
+    { id: 'INVC-004', number: 'INV-1004', status: 'sent', date: '2026-01-20', dueDate: '2026-02-20', deliveryDate: '2026-01-18',
+      from: { name: 'ForgeERP Engineering B.V.', address: 'Keizersgracht 742, 1017 EW Amsterdam', email: 'billing@forgeerp.nl', vatId: 'NL862345679B01', kvkNumber: '82345679' },
+      to: { name: 'SkyTech Industries B.V.', address: 'Zuidas 200, 1082 MD Amsterdam', email: 'dkowalski@skytech.nl', vatNumber: 'NL856789012B01' },
+      items: [{ description: 'Engineering & Design — AeroSense', quantity: 1, rate: 35000, vatRate: 21 }, { description: 'Prototype Build (3 units)', quantity: 3, rate: 8500, vatRate: 21 }],
+      notes: 'Milestone 1 facturering. Prototype levering in behandeling.', createdAt: '2026-01-20T11:00:00Z' },
+    { id: 'INVC-005', number: 'INV-1005', status: 'paid', date: '2025-05-15', dueDate: '2025-06-15', deliveryDate: '2025-05-10',
+      from: { name: 'ForgeERP Engineering B.V.', address: 'Keizersgracht 742, 1017 EW Amsterdam', email: 'billing@forgeerp.nl', vatId: 'NL862345679B01', kvkNumber: '82345679' },
+      to: { name: 'MapDynamics B.V.', address: 'Stationsplein 45, 3013 AK Rotterdam', email: 'thessler@mapdynamics.nl', vatNumber: 'NL867890123B01' },
+      items: [{ description: 'LiDAR Scanner Module — Development', quantity: 1, rate: 45000, vatRate: 21 }, { description: 'Testing & Calibration', quantity: 1, rate: 15000, vatRate: 9 }],
+      notes: 'Ontwikkelingsfase afgerond. Betaling ontvangen.', createdAt: '2025-05-15T08:00:00Z' },
   ],
   contacts: [
     { id: 'CON-001', type: 'customer', name: 'SkyTech Industries', contact: 'David Kowalski', email: 'dkowalski@skytech.io', phone: '+1 (415) 555-0142', address: 'San Francisco, CA', notes: 'Agricultural drone customer. Budget-conscious, values reliability.', revenue: 72500 },
@@ -517,7 +537,7 @@ function loadDB() {
 }
 
 // ==================== UTILITY FUNCTIONS ====================
-function formatCurrency(n) { return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }); }
+function formatCurrency(n) { return '€' + Number(n).toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function formatDate(d) { if (!d) return '—'; const dt = new Date(d + 'T00:00:00'); return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
 function statusColor(s) {
   const map = { planning: 'bg-zinc-600', design: 'bg-blue-500/20 text-blue-400', prototyping: 'bg-amber-500/20 text-amber-400', testing: 'bg-purple-500/20 text-purple-400', production: 'bg-green-500/20 text-green-400', completed: 'bg-green-700/30 text-green-300',
@@ -986,8 +1006,17 @@ function escapeHtml(str) {
 
 function calcInvoiceTotal(inv) {
   const subtotal = inv.items.reduce((s, item) => s + (item.quantity * item.rate), 0);
-  const tax = subtotal * (inv.taxRate / 100);
-  return { subtotal, tax, total: subtotal + tax };
+  // Support per-item vatRate (Dutch factuureisen) with fallback to legacy taxRate
+  const vatGroups = {};
+  inv.items.forEach(item => {
+    const rate = item.vatRate != null ? item.vatRate : (inv.taxRate || 0);
+    const lineNet = item.quantity * item.rate;
+    if (!vatGroups[rate]) vatGroups[rate] = { rate, net: 0, vat: 0 };
+    vatGroups[rate].net += lineNet;
+    vatGroups[rate].vat += lineNet * (rate / 100);
+  });
+  const tax = Object.values(vatGroups).reduce((s, g) => s + g.vat, 0);
+  return { subtotal, tax, total: subtotal + tax, vatGroups };
 }
 
 function nextInvoiceNumber() {
@@ -1059,10 +1088,9 @@ function renderInvoices() {
       <div class="space-y-1">
         ${inv.items.map(item => `<div class="flex items-center justify-between text-xs bg-zinc-800 rounded px-3 py-1.5">
           <span class="text-zinc-300">${escapeHtml(item.description)}</span>
-          <span class="font-mono text-zinc-400">${item.quantity} × ${formatCurrency(item.rate)} = ${formatCurrency(item.quantity * item.rate)}</span>
+          <span class="font-mono text-zinc-400">${item.quantity} × ${formatCurrency(item.rate)} = ${formatCurrency(item.quantity * item.rate)} <span class="text-zinc-600">(${item.vatRate != null ? item.vatRate : (inv.taxRate || 0)}% BTW)</span></span>
         </div>`).join('')}
       </div>
-      ${inv.taxRate > 0 ? `<div class="text-[10px] text-zinc-500 font-mono mt-2">+ ${inv.taxRate}% tax</div>` : ''}
     </div>`;
   }).join('') : '<div class="text-center text-zinc-500 font-mono py-12">No invoices found</div>';
 
@@ -1100,66 +1128,76 @@ function showInvoiceDetail(id) {
       </div>
     </div>
 
-    <div class="grid grid-cols-2 gap-4 mb-4">
-      <div><span class="text-[10px] text-zinc-500 font-mono block">Issue Date</span><span class="text-sm text-zinc-100">${formatDate(inv.date)}</span></div>
-      <div><span class="text-[10px] text-zinc-500 font-mono block">Due Date</span><span class="text-sm ${isOverdue ? 'text-red-400' : 'text-zinc-100'}">${formatDate(inv.dueDate)}</span></div>
+    <div class="grid grid-cols-3 gap-4 mb-4">
+      <div><span class="text-[10px] text-zinc-500 font-mono block">Factuurdatum</span><span class="text-sm text-zinc-100">${formatDate(inv.date)}</span></div>
+      <div><span class="text-[10px] text-zinc-500 font-mono block">Vervaldatum</span><span class="text-sm ${isOverdue ? 'text-red-400' : 'text-zinc-100'}">${formatDate(inv.dueDate)}</span></div>
+      <div><span class="text-[10px] text-zinc-500 font-mono block">Leverdatum</span><span class="text-sm text-zinc-100">${inv.deliveryDate ? formatDate(inv.deliveryDate) : '—'}</span></div>
     </div>
 
     <div class="grid grid-cols-2 gap-4 mb-4">
       <div class="bg-zinc-800 rounded-lg p-3">
-        <span class="text-[10px] text-zinc-500 font-mono block mb-1">FROM</span>
+        <span class="text-[10px] text-zinc-500 font-mono block mb-1">LEVERANCIER (FROM)</span>
         <div class="text-sm text-zinc-100 font-bold">${escapeHtml(inv.from.name)}</div>
         <div class="text-xs text-zinc-400">${escapeHtml(inv.from.address)}</div>
         <div class="text-xs text-zinc-400">${escapeHtml(inv.from.email)}</div>
+        ${inv.from.vatId ? `<div class="text-xs text-zinc-400 mt-1"><span class="text-zinc-500">BTW-id:</span> ${escapeHtml(inv.from.vatId)}</div>` : ''}
+        ${inv.from.kvkNumber ? `<div class="text-xs text-zinc-400"><span class="text-zinc-500">KVK:</span> ${escapeHtml(inv.from.kvkNumber)}</div>` : ''}
       </div>
       <div class="bg-zinc-800 rounded-lg p-3">
-        <span class="text-[10px] text-zinc-500 font-mono block mb-1">TO</span>
+        <span class="text-[10px] text-zinc-500 font-mono block mb-1">AFNEMER (TO)</span>
         <div class="text-sm text-zinc-100 font-bold">${escapeHtml(inv.to.name)}</div>
         <div class="text-xs text-zinc-400">${escapeHtml(inv.to.address)}</div>
         <div class="text-xs text-zinc-400">${escapeHtml(inv.to.email)}</div>
+        ${inv.to.vatNumber ? `<div class="text-xs text-zinc-400 mt-1"><span class="text-zinc-500">BTW-nr:</span> ${escapeHtml(inv.to.vatNumber)}</div>` : ''}
       </div>
     </div>
 
     <div class="mb-4">
-      <span class="text-[10px] text-zinc-500 font-mono block mb-2">LINE ITEMS</span>
+      <span class="text-[10px] text-zinc-500 font-mono block mb-2">REGELS (LINE ITEMS)</span>
       <div class="bg-zinc-800 rounded-lg overflow-hidden">
         <table class="w-full text-xs">
           <thead><tr class="border-b border-zinc-700">
-            <th class="text-left px-3 py-2 text-zinc-500 font-mono font-normal">Description</th>
-            <th class="text-right px-3 py-2 text-zinc-500 font-mono font-normal">Qty</th>
-            <th class="text-right px-3 py-2 text-zinc-500 font-mono font-normal">Rate</th>
-            <th class="text-right px-3 py-2 text-zinc-500 font-mono font-normal">Amount</th>
+            <th class="text-left px-3 py-2 text-zinc-500 font-mono font-normal">Omschrijving</th>
+            <th class="text-right px-3 py-2 text-zinc-500 font-mono font-normal">Aantal</th>
+            <th class="text-right px-3 py-2 text-zinc-500 font-mono font-normal">Prijs</th>
+            <th class="text-right px-3 py-2 text-zinc-500 font-mono font-normal">BTW%</th>
+            <th class="text-right px-3 py-2 text-zinc-500 font-mono font-normal">Bedrag</th>
           </tr></thead>
           <tbody>
-            ${inv.items.map(item => `<tr class="border-b border-zinc-700/50">
+            ${inv.items.map(item => { const vr = item.vatRate != null ? item.vatRate : (inv.taxRate || 0); return `<tr class="border-b border-zinc-700/50">
               <td class="px-3 py-2 text-zinc-300">${escapeHtml(item.description)}</td>
               <td class="px-3 py-2 text-right font-mono text-zinc-100">${item.quantity}</td>
               <td class="px-3 py-2 text-right font-mono text-zinc-400">${formatCurrency(item.rate)}</td>
+              <td class="px-3 py-2 text-right font-mono text-zinc-400">${vr}%</td>
               <td class="px-3 py-2 text-right font-mono text-zinc-100">${formatCurrency(item.quantity * item.rate)}</td>
-            </tr>`).join('')}
+            </tr>`; }).join('')}
           </tbody>
         </table>
       </div>
     </div>
 
     <div class="flex justify-end mb-4">
-      <div class="w-64 space-y-1.5">
+      <div class="w-72 space-y-1.5">
         <div class="flex justify-between text-xs font-mono">
-          <span class="text-zinc-500">Subtotal</span>
+          <span class="text-zinc-500">Subtotaal excl. BTW</span>
           <span class="text-zinc-100">${formatCurrency(subtotal)}</span>
         </div>
-        ${inv.taxRate > 0 ? `<div class="flex justify-between text-xs font-mono">
-          <span class="text-zinc-500">Tax (${inv.taxRate}%)</span>
+        ${Object.values(calcInvoiceTotal(inv).vatGroups).map(g => `<div class="flex justify-between text-xs font-mono">
+          <span class="text-zinc-500">BTW ${g.rate}% over ${formatCurrency(g.net)}</span>
+          <span class="text-zinc-100">${formatCurrency(g.vat)}</span>
+        </div>`).join('')}
+        <div class="flex justify-between text-xs font-mono">
+          <span class="text-zinc-500">Totaal BTW</span>
           <span class="text-zinc-100">${formatCurrency(tax)}</span>
-        </div>` : ''}
+        </div>
         <div class="flex justify-between text-sm font-mono font-bold border-t border-zinc-700 pt-1.5">
-          <span class="text-zinc-300">Total</span>
+          <span class="text-zinc-300">Totaal incl. BTW</span>
           <span class="text-amber-500">${formatCurrency(total)}</span>
         </div>
       </div>
     </div>
 
-    ${inv.notes ? `<div><span class="text-[10px] text-zinc-500 font-mono block mb-1">NOTES</span><p class="text-xs text-zinc-400">${escapeHtml(inv.notes)}</p></div>` : ''}
+    ${inv.notes ? `<div><span class="text-[10px] text-zinc-500 font-mono block mb-1">OPMERKINGEN</span><p class="text-xs text-zinc-400">${escapeHtml(inv.notes)}</p></div>` : ''}
   `;
 
   document.getElementById('detailOverlay').classList.add('open');
@@ -1199,71 +1237,79 @@ function deleteInvoice(id) {
 function exportInvoicePDF(id) {
   const inv = DB.invoices.find(x => x.id === id);
   if (!inv) return;
-  const { subtotal, tax, total } = calcInvoiceTotal(inv);
+  const { subtotal, tax, total, vatGroups } = calcInvoiceTotal(inv);
   const statusBadge = inv.status === 'paid' ? 'background:#dcfce7;color:#166534;' : inv.status === 'sent' ? 'background:#dbeafe;color:#1e40af;' : 'background:#f4f4f5;color:#3f3f46;';
-
   const html = `
     <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:800px;margin:0 auto;padding:40px;color:#18181b;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:40px;">
         <div>
-          <h1 style="font-size:28px;font-weight:700;margin:0 0 4px 0;color:#18181b;">INVOICE</h1>
+          <h1 style="font-size:28px;font-weight:700;margin:0 0 4px 0;color:#18181b;">FACTUUR</h1>
           <div style="font-size:14px;color:#71717a;font-family:monospace;">${escapeHtml(inv.number)}</div>
         </div>
         <div style="text-align:right;">
           <span style="display:inline-block;padding:4px 12px;border-radius:6px;font-size:12px;font-weight:600;text-transform:uppercase;${statusBadge}">${inv.status}</span>
           <div style="margin-top:8px;font-size:12px;color:#71717a;">
-            <div>Issued: ${formatDate(inv.date)}</div>
-            <div>Due: ${formatDate(inv.dueDate)}</div>
+            <div>Factuurdatum: ${formatDate(inv.date)}</div>
+            <div>Vervaldatum: ${formatDate(inv.dueDate)}</div>
+            ${inv.deliveryDate ? `<div>Leverdatum: ${formatDate(inv.deliveryDate)}</div>` : ''}
           </div>
         </div>
       </div>
       <div style="display:flex;gap:40px;margin-bottom:32px;">
         <div style="flex:1;">
-          <div style="font-size:10px;text-transform:uppercase;color:#a1a1aa;font-weight:600;margin-bottom:6px;">From</div>
+          <div style="font-size:10px;text-transform:uppercase;color:#a1a1aa;font-weight:600;margin-bottom:6px;">Leverancier</div>
           <div style="font-weight:600;margin-bottom:2px;">${escapeHtml(inv.from.name)}</div>
           <div style="font-size:13px;color:#52525b;">${escapeHtml(inv.from.address)}</div>
           <div style="font-size:13px;color:#52525b;">${escapeHtml(inv.from.email)}</div>
+          ${inv.from.vatId ? `<div style="font-size:12px;color:#52525b;margin-top:4px;">BTW-id: ${escapeHtml(inv.from.vatId)}</div>` : ''}
+          ${inv.from.kvkNumber ? `<div style="font-size:12px;color:#52525b;">KVK: ${escapeHtml(inv.from.kvkNumber)}</div>` : ''}
         </div>
         <div style="flex:1;">
-          <div style="font-size:10px;text-transform:uppercase;color:#a1a1aa;font-weight:600;margin-bottom:6px;">To</div>
+          <div style="font-size:10px;text-transform:uppercase;color:#a1a1aa;font-weight:600;margin-bottom:6px;">Afnemer</div>
           <div style="font-weight:600;margin-bottom:2px;">${escapeHtml(inv.to.name)}</div>
           <div style="font-size:13px;color:#52525b;">${escapeHtml(inv.to.address)}</div>
           <div style="font-size:13px;color:#52525b;">${escapeHtml(inv.to.email)}</div>
+          ${inv.to.vatNumber ? `<div style="font-size:12px;color:#52525b;margin-top:4px;">BTW-nr: ${escapeHtml(inv.to.vatNumber)}</div>` : ''}
         </div>
       </div>
       <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
         <thead>
           <tr style="border-bottom:2px solid #e4e4e7;">
-            <th style="text-align:left;padding:10px 8px;font-size:11px;text-transform:uppercase;color:#71717a;font-weight:600;">Description</th>
-            <th style="text-align:right;padding:10px 8px;font-size:11px;text-transform:uppercase;color:#71717a;font-weight:600;">Qty</th>
-            <th style="text-align:right;padding:10px 8px;font-size:11px;text-transform:uppercase;color:#71717a;font-weight:600;">Rate</th>
-            <th style="text-align:right;padding:10px 8px;font-size:11px;text-transform:uppercase;color:#71717a;font-weight:600;">Amount</th>
+            <th style="text-align:left;padding:10px 8px;font-size:11px;text-transform:uppercase;color:#71717a;font-weight:600;">Omschrijving</th>
+            <th style="text-align:right;padding:10px 8px;font-size:11px;text-transform:uppercase;color:#71717a;font-weight:600;">Aantal</th>
+            <th style="text-align:right;padding:10px 8px;font-size:11px;text-transform:uppercase;color:#71717a;font-weight:600;">Prijs</th>
+            <th style="text-align:right;padding:10px 8px;font-size:11px;text-transform:uppercase;color:#71717a;font-weight:600;">BTW%</th>
+            <th style="text-align:right;padding:10px 8px;font-size:11px;text-transform:uppercase;color:#71717a;font-weight:600;">Bedrag</th>
           </tr>
         </thead>
         <tbody>
-          ${inv.items.map(item => `<tr style="border-bottom:1px solid #f4f4f5;">
+          ${inv.items.map(item => { const vr = item.vatRate != null ? item.vatRate : (inv.taxRate || 0); return `<tr style="border-bottom:1px solid #f4f4f5;">
             <td style="padding:10px 8px;font-size:13px;">${escapeHtml(item.description)}</td>
             <td style="padding:10px 8px;text-align:right;font-size:13px;font-family:monospace;">${item.quantity}</td>
             <td style="padding:10px 8px;text-align:right;font-size:13px;font-family:monospace;">${formatCurrency(item.rate)}</td>
+            <td style="padding:10px 8px;text-align:right;font-size:13px;font-family:monospace;">${vr}%</td>
             <td style="padding:10px 8px;text-align:right;font-size:13px;font-family:monospace;font-weight:600;">${formatCurrency(item.quantity * item.rate)}</td>
-          </tr>`).join('')}
+          </tr>`; }).join('')}
         </tbody>
       </table>
       <div style="display:flex;justify-content:flex-end;margin-bottom:32px;">
-        <div style="width:250px;">
+        <div style="width:300px;">
           <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;color:#52525b;">
-            <span>Subtotal</span><span style="font-family:monospace;">${formatCurrency(subtotal)}</span>
+            <span>Subtotaal excl. BTW</span><span style="font-family:monospace;">${formatCurrency(subtotal)}</span>
           </div>
-          ${inv.taxRate > 0 ? `<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;color:#52525b;">
-            <span>Tax (${inv.taxRate}%)</span><span style="font-family:monospace;">${formatCurrency(tax)}</span>
-          </div>` : ''}
+          ${Object.values(vatGroups).map(g => `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;color:#71717a;">
+            <span>BTW ${g.rate}% over ${formatCurrency(g.net)}</span><span style="font-family:monospace;">${formatCurrency(g.vat)}</span>
+          </div>`).join('')}
+          <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;color:#52525b;">
+            <span>Totaal BTW</span><span style="font-family:monospace;">${formatCurrency(tax)}</span>
+          </div>
           <div style="display:flex;justify-content:space-between;padding:10px 0 0;border-top:2px solid #18181b;font-size:16px;font-weight:700;">
-            <span>Total</span><span style="font-family:monospace;">${formatCurrency(total)}</span>
+            <span>Totaal incl. BTW</span><span style="font-family:monospace;">${formatCurrency(total)}</span>
           </div>
         </div>
       </div>
       ${inv.notes ? `<div style="border-top:1px solid #e4e4e7;padding-top:16px;">
-        <div style="font-size:10px;text-transform:uppercase;color:#a1a1aa;font-weight:600;margin-bottom:4px;">Notes</div>
+        <div style="font-size:10px;text-transform:uppercase;color:#a1a1aa;font-weight:600;margin-bottom:4px;">Opmerkingen</div>
         <div style="font-size:13px;color:#52525b;">${escapeHtml(inv.notes)}</div>
       </div>` : ''}
     </div>
@@ -1381,20 +1427,24 @@ function openModal(type) {
         ta('Notes', 'notes', 'Additional notes...');
       break;
     case 'invoice':
-      html = `<div class="mb-3 p-3 bg-zinc-800 rounded-lg"><span class="text-xs text-zinc-500 font-mono">Invoice #</span><span class="text-sm text-amber-500 font-mono font-bold ml-2">${nextInvoiceNumber()}</span></div>` +
-        `<div class="grid grid-cols-2 gap-3">${inp('Issue Date', 'date', 'date')}${inp('Due Date', 'dueDate', 'date')}</div>` +
-        `<div class="text-[10px] text-zinc-500 font-mono uppercase tracking-wider mt-3 mb-1">From</div>` +
+      html = `<div class="mb-3 p-3 bg-zinc-800 rounded-lg"><span class="text-xs text-zinc-500 font-mono">Factuurnummer</span><span class="text-sm text-amber-500 font-mono font-bold ml-2">${nextInvoiceNumber()}</span></div>` +
+        `<div class="grid grid-cols-3 gap-3">${inp('Invoice Date', 'date', 'date')}${inp('Due Date', 'dueDate', 'date')}${inp('Delivery Date', 'deliveryDate', 'date')}</div>` +
+        `<div class="text-[10px] text-zinc-500 font-mono uppercase tracking-wider mt-3 mb-1">From (Leverancier)</div>` +
         inp('Business Name', 'fromName', 'text', 'Your business name') +
-        inp('Address', 'fromAddress', 'text', 'Street, City, State ZIP') +
-        inp('Email', 'fromEmail', 'email', 'billing@example.com') +
-        `<div class="text-[10px] text-zinc-500 font-mono uppercase tracking-wider mt-3 mb-1">Bill To</div>` +
+        inp('Address', 'fromAddress', 'text', 'Street, Postcode City') +
+        inp('Email', 'fromEmail', 'email', 'billing@example.nl') +
+        `<div class="grid grid-cols-2 gap-3">` +
+        inp('BTW-id (VAT ID)', 'fromVatId', 'text', 'NL000000000B00') +
+        inp('KVK Number', 'fromKvkNumber', 'text', '12345678') +
+        `</div>` +
+        `<div class="text-[10px] text-zinc-500 font-mono uppercase tracking-wider mt-3 mb-1">Bill To (Afnemer)</div>` +
         sel('Client', 'toName', DB.contacts.filter(c=>c.type==='customer').map(c=>({v:c.name,l:c.name}))) +
-        inp('Address', 'toAddress', 'text', 'Client address') +
-        inp('Email', 'toEmail', 'email', 'client@example.com') +
+        inp('Address', 'toAddress', 'text', 'Street, Postcode City') +
+        inp('Email', 'toEmail', 'email', 'client@example.nl') +
+        inp('BTW-nummer Client (VAT Number)', 'toVatNumber', 'text', 'NL000000000B00 or EU VAT number') +
         `<div class="text-[10px] text-zinc-500 font-mono uppercase tracking-wider mt-3 mb-1">Line Items</div>` +
-        `<div class="mb-3"><label class="text-xs text-zinc-500 font-mono block mb-1">Items (one per line: description, qty, rate)</label><textarea id="modal-invoiceItems" rows="4" placeholder="Engineering Design, 1, 15000&#10;Prototype Build, 3, 5000" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 font-mono text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-amber-500 focus:outline-none resize-none"></textarea></div>` +
-        inp('Tax Rate (%)', 'taxRate', 'number', '0') +
-        ta('Notes', 'notes', 'Payment terms, instructions...');
+        `<div class="mb-3"><label class="text-xs text-zinc-500 font-mono block mb-1">Items (one per line: description, qty, rate, VAT%)</label><textarea id="modal-invoiceItems" rows="4" placeholder="Engineering Design, 1, 15000, 21&#10;Prototype Build, 3, 5000, 21&#10;EU Export Service, 1, 8000, 0" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 font-mono text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-amber-500 focus:outline-none resize-none"></textarea></div>` +
+        ta('Notes', 'notes', 'Payment terms, special VAT notes (e.g. "BTW verlegd" for reverse charge)...');
       break;
     case 'contact':
       html = inp('Company Name', 'name', 'text', 'Company name') +
@@ -1448,15 +1498,15 @@ function saveModalData() {
     }
     case 'invoice': {
       const lines = document.getElementById('modal-invoiceItems').value.split('\n').filter(l => l.trim());
-      const invItems = lines.map(l => { const parts = l.split(',').map(s => s.trim()); return { description: parts[0] || '', quantity: parseInt(parts[1]) || 1, rate: parseFloat(parts[2]) || 0 }; });
+      const invItems = lines.map(l => { const parts = l.split(',').map(s => s.trim()); return { description: parts[0] || '', quantity: parseInt(parts[1]) || 1, rate: parseFloat(parts[2]) || 0, vatRate: parts[3] != null ? parseFloat(parts[3]) : 21 }; });
       DB.invoices.push({
         id: nextId(DB.invoices, 'INVC'), number: nextInvoiceNumber(), status: 'draft',
         date: getVal('date') || new Date().toISOString().split('T')[0],
         dueDate: getVal('dueDate') || (() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().split('T')[0]; })(),
-        from: { name: getVal('fromName') || 'ForgeERP Engineering', address: getVal('fromAddress'), email: getVal('fromEmail') },
-        to: { name: getVal('toName'), address: getVal('toAddress'), email: getVal('toEmail') },
-        items: invItems.length ? invItems : [{ description: 'Service', quantity: 1, rate: 0 }],
-        taxRate: parseFloat(getVal('taxRate')) || 0,
+        deliveryDate: getVal('deliveryDate') || '',
+        from: { name: getVal('fromName') || 'ForgeERP Engineering B.V.', address: getVal('fromAddress'), email: getVal('fromEmail'), vatId: getVal('fromVatId'), kvkNumber: getVal('fromKvkNumber') },
+        to: { name: getVal('toName'), address: getVal('toAddress'), email: getVal('toEmail'), vatNumber: getVal('toVatNumber') },
+        items: invItems.length ? invItems : [{ description: 'Service', quantity: 1, rate: 0, vatRate: 21 }],
         notes: getVal('notes'),
         createdAt: new Date().toISOString()
       });
