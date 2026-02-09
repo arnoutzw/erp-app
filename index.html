@@ -13,6 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
 tailwind.config = {
   theme: {
@@ -87,6 +88,9 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     <div class="px-3 py-2 mt-2 text-[10px] font-mono text-zinc-600 uppercase tracking-wider">Commercial</div>
     <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-2.5 text-zinc-400 transition-colors cursor-pointer" data-tab="quotes">
       <i data-lucide="file-text" class="w-4 h-4"></i> Quotes & Orders
+    </a>
+    <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-2.5 text-zinc-400 transition-colors cursor-pointer" data-tab="invoices">
+      <i data-lucide="receipt" class="w-4 h-4"></i> Invoices
     </a>
     <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-2.5 text-zinc-400 transition-colors cursor-pointer" data-tab="contacts">
       <i data-lucide="users" class="w-4 h-4"></i> Contacts
@@ -344,6 +348,23 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       <div id="quotesOrdersList" class="space-y-3"></div>
     </div>
 
+    <!-- INVOICES -->
+    <div id="tab-invoices" class="tab-content fade-in">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6" id="invoiceStats"></div>
+      <div class="flex items-center justify-between mb-6">
+        <select id="invoiceStatusFilter" class="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 font-mono text-sm text-zinc-100 focus:border-amber-500 focus:outline-none" onchange="renderInvoices()">
+          <option value="all">All Status</option>
+          <option value="draft">Draft</option>
+          <option value="sent">Sent</option>
+          <option value="paid">Paid</option>
+        </select>
+        <button onclick="openModal('invoice')" class="bg-amber-500 hover:bg-amber-400 text-zinc-900 font-mono font-bold px-4 py-2.5 rounded-lg transition-colors flex items-center gap-2">
+          <i data-lucide="plus" class="w-4 h-4"></i> New Invoice
+        </button>
+      </div>
+      <div id="invoicesList" class="space-y-3"></div>
+    </div>
+
     <!-- CONTACTS -->
     <div id="tab-contacts" class="tab-content fade-in">
       <div class="flex items-center justify-between mb-6">
@@ -462,6 +483,13 @@ const DB = {
     { id: 'QUO-003', client: 'OceanView Research', project: 'Underwater Camera Housing', type: 'quote', status: 'draft', date: '2026-02-05', validUntil: '2026-03-05', items: [{ desc: 'Housing Design & Engineering', qty: 1, unitPrice: 15000 }, { desc: 'Prototype Housing (300m rated)', qty: 1, unitPrice: 8000 }, { desc: 'Pressure Testing', qty: 1, unitPrice: 3000 }], total: 26000, notes: 'Initial quote for single prototype.' },
     { id: 'ORD-003', client: 'MapDynamics', project: 'LiDAR Scanner Module', type: 'order', status: 'delivered', date: '2025-05-10', items: [{ desc: 'LiDAR Module — Production Unit', qty: 5, unitPrice: 12000 }, { desc: 'Integration Support', qty: 1, unitPrice: 5000 }], total: 65000, notes: 'All 5 units delivered. Support contract active.' },
   ],
+  invoices: [
+    { id: 'INVC-001', number: 'INV-1001', status: 'paid', date: '2025-10-20', dueDate: '2025-11-20', from: { name: 'ForgeERP Engineering', address: '742 Innovation Drive, Portland, OR 97201', email: 'billing@forgeerp.com' }, to: { name: 'DataVault Solutions', address: 'Seattle, WA', email: 'mobrien@datavault.com' }, items: [{ description: 'Smart PDU 20A 3-Phase', quantity: 10, rate: 4200 }], taxRate: 0, notes: 'Payment received. Thank you.', createdAt: '2025-10-20T10:00:00Z' },
+    { id: 'INVC-002', number: 'INV-1002', status: 'sent', date: '2026-01-15', dueDate: '2026-02-15', from: { name: 'ForgeERP Engineering', address: '742 Innovation Drive, Portland, OR 97201', email: 'billing@forgeerp.com' }, to: { name: 'AutomateX Labs', address: 'Austin, TX', email: 'lwei@automatex.com' }, items: [{ description: 'Robotic Arm v3 Complete Unit', quantity: 2, rate: 45000 }, { description: 'Spare Parts Kit', quantity: 2, rate: 3500 }], taxRate: 8.5, notes: 'Net 30. Please reference invoice number on payment.', createdAt: '2026-01-15T09:00:00Z' },
+    { id: 'INVC-003', number: 'INV-1003', status: 'draft', date: '2026-02-05', dueDate: '2026-03-07', from: { name: 'ForgeERP Engineering', address: '742 Innovation Drive, Portland, OR 97201', email: 'billing@forgeerp.com' }, to: { name: 'MapDynamics', address: 'San Jose, CA', email: 'thessler@mapdynamics.com' }, items: [{ description: 'LiDAR Module — Production Unit', quantity: 5, rate: 12000 }, { description: 'Integration Support', quantity: 1, rate: 5000 }], taxRate: 8.5, notes: 'Final invoice for LiDAR project delivery.', createdAt: '2026-02-05T14:00:00Z' },
+    { id: 'INVC-004', number: 'INV-1004', status: 'sent', date: '2026-01-20', dueDate: '2026-02-20', from: { name: 'ForgeERP Engineering', address: '742 Innovation Drive, Portland, OR 97201', email: 'billing@forgeerp.com' }, to: { name: 'SkyTech Industries', address: 'San Francisco, CA', email: 'dkowalski@skytech.io' }, items: [{ description: 'Engineering & Design — AeroSense', quantity: 1, rate: 35000 }, { description: 'Prototype Build (3 units)', quantity: 3, rate: 8500 }], taxRate: 0, notes: 'Milestone 1 billing. Prototype delivery pending.', createdAt: '2026-01-20T11:00:00Z' },
+    { id: 'INVC-005', number: 'INV-1005', status: 'paid', date: '2025-05-15', dueDate: '2025-06-15', from: { name: 'ForgeERP Engineering', address: '742 Innovation Drive, Portland, OR 97201', email: 'billing@forgeerp.com' }, to: { name: 'MapDynamics', address: 'San Jose, CA', email: 'thessler@mapdynamics.com' }, items: [{ description: 'LiDAR Scanner Module — Development', quantity: 1, rate: 45000 }, { description: 'Testing & Calibration', quantity: 1, rate: 15000 }], taxRate: 0, notes: 'Development phase completed. Payment received.', createdAt: '2025-05-15T08:00:00Z' },
+  ],
   contacts: [
     { id: 'CON-001', type: 'customer', name: 'SkyTech Industries', contact: 'David Kowalski', email: 'dkowalski@skytech.io', phone: '+1 (415) 555-0142', address: 'San Francisco, CA', notes: 'Agricultural drone customer. Budget-conscious, values reliability.', revenue: 72500 },
     { id: 'CON-002', type: 'customer', name: 'AutomateX Labs', contact: 'Lin Wei', email: 'lwei@automatex.com', phone: '+1 (512) 555-0198', address: 'Austin, TX', notes: 'Robotics integrator. High-value, repeat customer potential.', revenue: 97000 },
@@ -495,7 +523,7 @@ function statusColor(s) {
   const map = { planning: 'bg-zinc-600', design: 'bg-blue-500/20 text-blue-400', prototyping: 'bg-amber-500/20 text-amber-400', testing: 'bg-purple-500/20 text-purple-400', production: 'bg-green-500/20 text-green-400', completed: 'bg-green-700/30 text-green-300',
     draft: 'bg-zinc-600', sent: 'bg-blue-500/20 text-blue-400', confirmed: 'bg-amber-500/20 text-amber-400', shipped: 'bg-purple-500/20 text-purple-400', received: 'bg-green-500/20 text-green-400',
     queued: 'bg-zinc-600 text-zinc-300', in_progress: 'bg-amber-500/20 text-amber-400', qa: 'bg-purple-500/20 text-purple-400',
-    accepted: 'bg-green-500/20 text-green-400', in_production: 'bg-amber-500/20 text-amber-400', delivered: 'bg-green-700/30 text-green-300',
+    accepted: 'bg-green-500/20 text-green-400', in_production: 'bg-amber-500/20 text-amber-400', delivered: 'bg-green-700/30 text-green-300', paid: 'bg-green-500/20 text-green-400',
     high: 'bg-red-500/20 text-red-400', medium: 'bg-amber-500/20 text-amber-400', low: 'bg-zinc-600 text-zinc-400'
   };
   return map[s] || 'bg-zinc-600 text-zinc-300';
@@ -525,7 +553,7 @@ function switchTab(tab) {
   document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
-  const titles = { dashboard: 'Dashboard', projects: 'Projects', bom: 'Bill of Materials', inventory: 'Inventory', procurement: 'Procurement', manufacturing: 'Manufacturing', quotes: 'Quotes & Orders', contacts: 'Contacts' };
+  const titles = { dashboard: 'Dashboard', projects: 'Projects', bom: 'Bill of Materials', inventory: 'Inventory', procurement: 'Procurement', manufacturing: 'Manufacturing', quotes: 'Quotes & Orders', invoices: 'Invoices', contacts: 'Contacts' };
   document.getElementById('pageTitle').textContent = titles[tab] || tab;
   renderTab(tab);
 }
@@ -539,6 +567,7 @@ function renderTab(tab) {
     case 'procurement': renderProcurement(); break;
     case 'manufacturing': renderManufacturing(); break;
     case 'quotes': renderQuotesOrders(); break;
+    case 'invoices': renderInvoices(); break;
     case 'contacts': renderContacts(); break;
   }
 }
@@ -948,6 +977,313 @@ function renderQuotesOrders() {
   lucide.createIcons();
 }
 
+// ==================== INVOICES ====================
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function calcInvoiceTotal(inv) {
+  const subtotal = inv.items.reduce((s, item) => s + (item.quantity * item.rate), 0);
+  const tax = subtotal * (inv.taxRate / 100);
+  return { subtotal, tax, total: subtotal + tax };
+}
+
+function nextInvoiceNumber() {
+  const nums = DB.invoices.map(i => parseInt(i.number.split('-')[1]));
+  return 'INV-' + String(Math.max(1000, ...nums) + 1).padStart(4, '0');
+}
+
+function renderInvoices() {
+  const total = DB.invoices.length;
+  const drafts = DB.invoices.filter(i => i.status === 'draft').length;
+  const sent = DB.invoices.filter(i => i.status === 'sent').length;
+  const paid = DB.invoices.filter(i => i.status === 'paid').length;
+  const totalRevenue = DB.invoices.filter(i => i.status === 'paid').reduce((s, i) => s + calcInvoiceTotal(i).total, 0);
+
+  document.getElementById('invoiceStats').innerHTML = `
+    <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-4 hover:border-amber-500/50 transition-all duration-300">
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-xs text-zinc-500 font-mono">TOTAL</span>
+        <div class="w-7 h-7 bg-zinc-800 rounded-lg flex items-center justify-center"><i data-lucide="file-text" class="w-3.5 h-3.5 text-zinc-400"></i></div>
+      </div>
+      <div class="font-mono font-bold text-xl text-zinc-100">${total}</div>
+      <div class="text-[10px] text-zinc-500 font-mono mt-1">${formatCurrency(totalRevenue)} collected</div>
+    </div>
+    <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-4 hover:border-amber-500/50 transition-all duration-300">
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-xs text-zinc-500 font-mono">DRAFTS</span>
+        <div class="w-7 h-7 bg-zinc-800 rounded-lg flex items-center justify-center"><i data-lucide="file-edit" class="w-3.5 h-3.5 text-zinc-400"></i></div>
+      </div>
+      <div class="font-mono font-bold text-xl text-zinc-400">${drafts}</div>
+    </div>
+    <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-4 hover:border-amber-500/50 transition-all duration-300">
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-xs text-zinc-500 font-mono">SENT</span>
+        <div class="w-7 h-7 bg-blue-500/10 rounded-lg flex items-center justify-center"><i data-lucide="send" class="w-3.5 h-3.5 text-blue-400"></i></div>
+      </div>
+      <div class="font-mono font-bold text-xl text-blue-400">${sent}</div>
+    </div>
+    <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-4 hover:border-amber-500/50 transition-all duration-300">
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-xs text-zinc-500 font-mono">PAID</span>
+        <div class="w-7 h-7 bg-green-500/10 rounded-lg flex items-center justify-center"><i data-lucide="check-circle" class="w-3.5 h-3.5 text-green-400"></i></div>
+      </div>
+      <div class="font-mono font-bold text-xl text-green-400">${paid}</div>
+    </div>
+  `;
+
+  const filter = document.getElementById('invoiceStatusFilter').value;
+  let items = DB.invoices.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  if (filter !== 'all') items = items.filter(i => i.status === filter);
+
+  document.getElementById('invoicesList').innerHTML = items.length ? items.map(inv => {
+    const { total } = calcInvoiceTotal(inv);
+    const isOverdue = inv.status === 'sent' && new Date(inv.dueDate) < new Date();
+    return `
+    <div class="bg-zinc-900 border ${isOverdue ? 'border-red-500/50' : 'border-zinc-700'} rounded-lg p-5 hover:border-amber-500/50 transition-all duration-300 cursor-pointer" onclick="showInvoiceDetail('${inv.id}')">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-3">
+          <span class="font-mono font-bold text-zinc-100">${escapeHtml(inv.number)}</span>
+          <span class="text-xs px-2 py-0.5 rounded font-mono ${statusColor(inv.status)}">${statusLabel(inv.status)}</span>
+          ${isOverdue ? '<span class="text-xs px-2 py-0.5 rounded font-mono bg-red-500/20 text-red-400">OVERDUE</span>' : ''}
+        </div>
+        <span class="font-mono font-bold text-amber-500 text-lg">${formatCurrency(total)}</span>
+      </div>
+      <div class="flex items-center gap-4 text-xs text-zinc-500 font-mono mb-3">
+        <span><i data-lucide="building-2" class="w-3 h-3 inline mr-1"></i>${escapeHtml(inv.to.name)}</span>
+        <span><i data-lucide="calendar" class="w-3 h-3 inline mr-1"></i>${formatDate(inv.date)}</span>
+        <span><i data-lucide="clock" class="w-3 h-3 inline mr-1"></i>Due: ${formatDate(inv.dueDate)}</span>
+      </div>
+      <div class="space-y-1">
+        ${inv.items.map(item => `<div class="flex items-center justify-between text-xs bg-zinc-800 rounded px-3 py-1.5">
+          <span class="text-zinc-300">${escapeHtml(item.description)}</span>
+          <span class="font-mono text-zinc-400">${item.quantity} × ${formatCurrency(item.rate)} = ${formatCurrency(item.quantity * item.rate)}</span>
+        </div>`).join('')}
+      </div>
+      ${inv.taxRate > 0 ? `<div class="text-[10px] text-zinc-500 font-mono mt-2">+ ${inv.taxRate}% tax</div>` : ''}
+    </div>`;
+  }).join('') : '<div class="text-center text-zinc-500 font-mono py-12">No invoices found</div>';
+
+  lucide.createIcons();
+}
+
+function showInvoiceDetail(id) {
+  const inv = DB.invoices.find(x => x.id === id);
+  if (!inv) return;
+  const { subtotal, tax, total } = calcInvoiceTotal(inv);
+  const isOverdue = inv.status === 'sent' && new Date(inv.dueDate) < new Date();
+
+  document.getElementById('detailTitle').textContent = inv.number;
+  document.getElementById('detailBody').innerHTML = `
+    <div class="flex items-center justify-between mb-5">
+      <div class="flex items-center gap-2">
+        <span class="text-xs px-2 py-0.5 rounded font-mono ${statusColor(inv.status)}">${statusLabel(inv.status)}</span>
+        ${isOverdue ? '<span class="text-xs px-2 py-0.5 rounded font-mono bg-red-500/20 text-red-400">OVERDUE</span>' : ''}
+        <select onchange="updateInvoiceStatus('${inv.id}', this.value)" class="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 font-mono text-xs text-zinc-100 focus:border-amber-500 focus:outline-none">
+          <option value="draft" ${inv.status==='draft'?'selected':''}>Draft</option>
+          <option value="sent" ${inv.status==='sent'?'selected':''}>Sent</option>
+          <option value="paid" ${inv.status==='paid'?'selected':''}>Paid</option>
+        </select>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="exportInvoicePDF('${inv.id}')" class="text-xs font-mono px-3 py-1.5 rounded-lg bg-zinc-700 text-zinc-300 hover:bg-zinc-600 transition-colors flex items-center gap-1">
+          <i data-lucide="download" class="w-3 h-3"></i> PDF
+        </button>
+        <button onclick="duplicateInvoice('${inv.id}')" class="text-xs font-mono px-3 py-1.5 rounded-lg bg-zinc-700 text-zinc-300 hover:bg-zinc-600 transition-colors flex items-center gap-1">
+          <i data-lucide="copy" class="w-3 h-3"></i> Duplicate
+        </button>
+        <button onclick="deleteInvoice('${inv.id}')" class="text-xs font-mono px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors flex items-center gap-1">
+          <i data-lucide="trash-2" class="w-3 h-3"></i> Delete
+        </button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4 mb-4">
+      <div><span class="text-[10px] text-zinc-500 font-mono block">Issue Date</span><span class="text-sm text-zinc-100">${formatDate(inv.date)}</span></div>
+      <div><span class="text-[10px] text-zinc-500 font-mono block">Due Date</span><span class="text-sm ${isOverdue ? 'text-red-400' : 'text-zinc-100'}">${formatDate(inv.dueDate)}</span></div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4 mb-4">
+      <div class="bg-zinc-800 rounded-lg p-3">
+        <span class="text-[10px] text-zinc-500 font-mono block mb-1">FROM</span>
+        <div class="text-sm text-zinc-100 font-bold">${escapeHtml(inv.from.name)}</div>
+        <div class="text-xs text-zinc-400">${escapeHtml(inv.from.address)}</div>
+        <div class="text-xs text-zinc-400">${escapeHtml(inv.from.email)}</div>
+      </div>
+      <div class="bg-zinc-800 rounded-lg p-3">
+        <span class="text-[10px] text-zinc-500 font-mono block mb-1">TO</span>
+        <div class="text-sm text-zinc-100 font-bold">${escapeHtml(inv.to.name)}</div>
+        <div class="text-xs text-zinc-400">${escapeHtml(inv.to.address)}</div>
+        <div class="text-xs text-zinc-400">${escapeHtml(inv.to.email)}</div>
+      </div>
+    </div>
+
+    <div class="mb-4">
+      <span class="text-[10px] text-zinc-500 font-mono block mb-2">LINE ITEMS</span>
+      <div class="bg-zinc-800 rounded-lg overflow-hidden">
+        <table class="w-full text-xs">
+          <thead><tr class="border-b border-zinc-700">
+            <th class="text-left px-3 py-2 text-zinc-500 font-mono font-normal">Description</th>
+            <th class="text-right px-3 py-2 text-zinc-500 font-mono font-normal">Qty</th>
+            <th class="text-right px-3 py-2 text-zinc-500 font-mono font-normal">Rate</th>
+            <th class="text-right px-3 py-2 text-zinc-500 font-mono font-normal">Amount</th>
+          </tr></thead>
+          <tbody>
+            ${inv.items.map(item => `<tr class="border-b border-zinc-700/50">
+              <td class="px-3 py-2 text-zinc-300">${escapeHtml(item.description)}</td>
+              <td class="px-3 py-2 text-right font-mono text-zinc-100">${item.quantity}</td>
+              <td class="px-3 py-2 text-right font-mono text-zinc-400">${formatCurrency(item.rate)}</td>
+              <td class="px-3 py-2 text-right font-mono text-zinc-100">${formatCurrency(item.quantity * item.rate)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="flex justify-end mb-4">
+      <div class="w-64 space-y-1.5">
+        <div class="flex justify-between text-xs font-mono">
+          <span class="text-zinc-500">Subtotal</span>
+          <span class="text-zinc-100">${formatCurrency(subtotal)}</span>
+        </div>
+        ${inv.taxRate > 0 ? `<div class="flex justify-between text-xs font-mono">
+          <span class="text-zinc-500">Tax (${inv.taxRate}%)</span>
+          <span class="text-zinc-100">${formatCurrency(tax)}</span>
+        </div>` : ''}
+        <div class="flex justify-between text-sm font-mono font-bold border-t border-zinc-700 pt-1.5">
+          <span class="text-zinc-300">Total</span>
+          <span class="text-amber-500">${formatCurrency(total)}</span>
+        </div>
+      </div>
+    </div>
+
+    ${inv.notes ? `<div><span class="text-[10px] text-zinc-500 font-mono block mb-1">NOTES</span><p class="text-xs text-zinc-400">${escapeHtml(inv.notes)}</p></div>` : ''}
+  `;
+
+  document.getElementById('detailOverlay').classList.add('open');
+  lucide.createIcons();
+}
+
+function updateInvoiceStatus(id, status) {
+  const inv = DB.invoices.find(x => x.id === id);
+  if (inv) { inv.status = status; saveDB(); showInvoiceDetail(id); }
+}
+
+function duplicateInvoice(id) {
+  const src = DB.invoices.find(x => x.id === id);
+  if (!src) return;
+  const dup = JSON.parse(JSON.stringify(src));
+  dup.id = nextId(DB.invoices, 'INVC');
+  dup.number = nextInvoiceNumber();
+  dup.status = 'draft';
+  dup.date = new Date().toISOString().split('T')[0];
+  const due = new Date(); due.setDate(due.getDate() + 30);
+  dup.dueDate = due.toISOString().split('T')[0];
+  dup.createdAt = new Date().toISOString();
+  DB.invoices.push(dup);
+  saveDB();
+  closeDetail();
+  renderInvoices();
+}
+
+function deleteInvoice(id) {
+  if (!confirm('Delete this invoice? This cannot be undone.')) return;
+  DB.invoices = DB.invoices.filter(x => x.id !== id);
+  saveDB();
+  closeDetail();
+  renderInvoices();
+}
+
+function exportInvoicePDF(id) {
+  const inv = DB.invoices.find(x => x.id === id);
+  if (!inv) return;
+  const { subtotal, tax, total } = calcInvoiceTotal(inv);
+  const statusBadge = inv.status === 'paid' ? 'background:#dcfce7;color:#166534;' : inv.status === 'sent' ? 'background:#dbeafe;color:#1e40af;' : 'background:#f4f4f5;color:#3f3f46;';
+
+  const html = `
+    <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:800px;margin:0 auto;padding:40px;color:#18181b;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:40px;">
+        <div>
+          <h1 style="font-size:28px;font-weight:700;margin:0 0 4px 0;color:#18181b;">INVOICE</h1>
+          <div style="font-size:14px;color:#71717a;font-family:monospace;">${escapeHtml(inv.number)}</div>
+        </div>
+        <div style="text-align:right;">
+          <span style="display:inline-block;padding:4px 12px;border-radius:6px;font-size:12px;font-weight:600;text-transform:uppercase;${statusBadge}">${inv.status}</span>
+          <div style="margin-top:8px;font-size:12px;color:#71717a;">
+            <div>Issued: ${formatDate(inv.date)}</div>
+            <div>Due: ${formatDate(inv.dueDate)}</div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:40px;margin-bottom:32px;">
+        <div style="flex:1;">
+          <div style="font-size:10px;text-transform:uppercase;color:#a1a1aa;font-weight:600;margin-bottom:6px;">From</div>
+          <div style="font-weight:600;margin-bottom:2px;">${escapeHtml(inv.from.name)}</div>
+          <div style="font-size:13px;color:#52525b;">${escapeHtml(inv.from.address)}</div>
+          <div style="font-size:13px;color:#52525b;">${escapeHtml(inv.from.email)}</div>
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:10px;text-transform:uppercase;color:#a1a1aa;font-weight:600;margin-bottom:6px;">To</div>
+          <div style="font-weight:600;margin-bottom:2px;">${escapeHtml(inv.to.name)}</div>
+          <div style="font-size:13px;color:#52525b;">${escapeHtml(inv.to.address)}</div>
+          <div style="font-size:13px;color:#52525b;">${escapeHtml(inv.to.email)}</div>
+        </div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+        <thead>
+          <tr style="border-bottom:2px solid #e4e4e7;">
+            <th style="text-align:left;padding:10px 8px;font-size:11px;text-transform:uppercase;color:#71717a;font-weight:600;">Description</th>
+            <th style="text-align:right;padding:10px 8px;font-size:11px;text-transform:uppercase;color:#71717a;font-weight:600;">Qty</th>
+            <th style="text-align:right;padding:10px 8px;font-size:11px;text-transform:uppercase;color:#71717a;font-weight:600;">Rate</th>
+            <th style="text-align:right;padding:10px 8px;font-size:11px;text-transform:uppercase;color:#71717a;font-weight:600;">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${inv.items.map(item => `<tr style="border-bottom:1px solid #f4f4f5;">
+            <td style="padding:10px 8px;font-size:13px;">${escapeHtml(item.description)}</td>
+            <td style="padding:10px 8px;text-align:right;font-size:13px;font-family:monospace;">${item.quantity}</td>
+            <td style="padding:10px 8px;text-align:right;font-size:13px;font-family:monospace;">${formatCurrency(item.rate)}</td>
+            <td style="padding:10px 8px;text-align:right;font-size:13px;font-family:monospace;font-weight:600;">${formatCurrency(item.quantity * item.rate)}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:32px;">
+        <div style="width:250px;">
+          <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;color:#52525b;">
+            <span>Subtotal</span><span style="font-family:monospace;">${formatCurrency(subtotal)}</span>
+          </div>
+          ${inv.taxRate > 0 ? `<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;color:#52525b;">
+            <span>Tax (${inv.taxRate}%)</span><span style="font-family:monospace;">${formatCurrency(tax)}</span>
+          </div>` : ''}
+          <div style="display:flex;justify-content:space-between;padding:10px 0 0;border-top:2px solid #18181b;font-size:16px;font-weight:700;">
+            <span>Total</span><span style="font-family:monospace;">${formatCurrency(total)}</span>
+          </div>
+        </div>
+      </div>
+      ${inv.notes ? `<div style="border-top:1px solid #e4e4e7;padding-top:16px;">
+        <div style="font-size:10px;text-transform:uppercase;color:#a1a1aa;font-weight:600;margin-bottom:4px;">Notes</div>
+        <div style="font-size:13px;color:#52525b;">${escapeHtml(inv.notes)}</div>
+      </div>` : ''}
+    </div>
+  `;
+
+  const el = document.createElement('div');
+  el.innerHTML = html;
+  document.body.appendChild(el);
+
+  html2pdf().set({
+    margin: [10, 10, 10, 10],
+    filename: inv.number + '.pdf',
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  }).from(el).save().then(() => {
+    document.body.removeChild(el);
+  });
+}
+
 // ==================== CONTACTS ====================
 function toggleContactView(view) {
   contactView = view;
@@ -986,7 +1322,7 @@ let modalType = '';
 
 function openModal(type) {
   modalType = type;
-  const title = { project: 'New Project', bomItem: 'Add BOM Item', inventoryItem: 'Add Inventory Item', purchaseOrder: 'New Purchase Order', workOrder: 'New Work Order', quote: quoteView === 'quotes' ? 'New Quote' : 'New Order', contact: contactView === 'customers' ? 'New Customer' : 'New Supplier' };
+  const title = { project: 'New Project', bomItem: 'Add BOM Item', inventoryItem: 'Add Inventory Item', purchaseOrder: 'New Purchase Order', workOrder: 'New Work Order', quote: quoteView === 'quotes' ? 'New Quote' : 'New Order', invoice: 'New Invoice', contact: contactView === 'customers' ? 'New Customer' : 'New Supplier' };
   document.getElementById('modalTitle').textContent = title[type] || 'New Item';
 
   let html = '';
@@ -1044,6 +1380,22 @@ function openModal(type) {
         `<div class="mb-3"><label class="text-xs text-zinc-500 font-mono block mb-1">Line Items (one per line: description, qty, unit price)</label><textarea id="modal-lineItems" rows="4" placeholder="Engineering Design, 1, 15000&#10;Prototype Build, 3, 5000" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 font-mono text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-amber-500 focus:outline-none resize-none"></textarea></div>` +
         ta('Notes', 'notes', 'Additional notes...');
       break;
+    case 'invoice':
+      html = `<div class="mb-3 p-3 bg-zinc-800 rounded-lg"><span class="text-xs text-zinc-500 font-mono">Invoice #</span><span class="text-sm text-amber-500 font-mono font-bold ml-2">${nextInvoiceNumber()}</span></div>` +
+        `<div class="grid grid-cols-2 gap-3">${inp('Issue Date', 'date', 'date')}${inp('Due Date', 'dueDate', 'date')}</div>` +
+        `<div class="text-[10px] text-zinc-500 font-mono uppercase tracking-wider mt-3 mb-1">From</div>` +
+        inp('Business Name', 'fromName', 'text', 'Your business name') +
+        inp('Address', 'fromAddress', 'text', 'Street, City, State ZIP') +
+        inp('Email', 'fromEmail', 'email', 'billing@example.com') +
+        `<div class="text-[10px] text-zinc-500 font-mono uppercase tracking-wider mt-3 mb-1">Bill To</div>` +
+        sel('Client', 'toName', DB.contacts.filter(c=>c.type==='customer').map(c=>({v:c.name,l:c.name}))) +
+        inp('Address', 'toAddress', 'text', 'Client address') +
+        inp('Email', 'toEmail', 'email', 'client@example.com') +
+        `<div class="text-[10px] text-zinc-500 font-mono uppercase tracking-wider mt-3 mb-1">Line Items</div>` +
+        `<div class="mb-3"><label class="text-xs text-zinc-500 font-mono block mb-1">Items (one per line: description, qty, rate)</label><textarea id="modal-invoiceItems" rows="4" placeholder="Engineering Design, 1, 15000&#10;Prototype Build, 3, 5000" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2.5 font-mono text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-amber-500 focus:outline-none resize-none"></textarea></div>` +
+        inp('Tax Rate (%)', 'taxRate', 'number', '0') +
+        ta('Notes', 'notes', 'Payment terms, instructions...');
+      break;
     case 'contact':
       html = inp('Company Name', 'name', 'text', 'Company name') +
         inp('Contact Person', 'contact', 'text', 'Name') +
@@ -1094,6 +1446,22 @@ function saveModalData() {
       DB.quotes.push({ id: nextId(DB.quotes, quoteView === 'quotes' ? 'QUO' : 'ORD'), client: getVal('client'), project: getVal('project'), type: quoteView === 'quotes' ? 'quote' : 'order', status: 'draft', date: new Date().toISOString().split('T')[0], validUntil: getVal('validUntil') || undefined, items: qItems, total, notes: getVal('notes') });
       break;
     }
+    case 'invoice': {
+      const lines = document.getElementById('modal-invoiceItems').value.split('\n').filter(l => l.trim());
+      const invItems = lines.map(l => { const parts = l.split(',').map(s => s.trim()); return { description: parts[0] || '', quantity: parseInt(parts[1]) || 1, rate: parseFloat(parts[2]) || 0 }; });
+      DB.invoices.push({
+        id: nextId(DB.invoices, 'INVC'), number: nextInvoiceNumber(), status: 'draft',
+        date: getVal('date') || new Date().toISOString().split('T')[0],
+        dueDate: getVal('dueDate') || (() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().split('T')[0]; })(),
+        from: { name: getVal('fromName') || 'ForgeERP Engineering', address: getVal('fromAddress'), email: getVal('fromEmail') },
+        to: { name: getVal('toName'), address: getVal('toAddress'), email: getVal('toEmail') },
+        items: invItems.length ? invItems : [{ description: 'Service', quantity: 1, rate: 0 }],
+        taxRate: parseFloat(getVal('taxRate')) || 0,
+        notes: getVal('notes'),
+        createdAt: new Date().toISOString()
+      });
+      break;
+    }
     case 'contact':
       DB.contacts.push({ id: nextId(DB.contacts, contactView === 'customers' ? 'CON' : 'SUP'), type: contactView === 'customers' ? 'customer' : 'supplier', name: getVal('name'), contact: getVal('contact'), email: getVal('email'), phone: getVal('phone'), address: getVal('address'), notes: getVal('notes'), revenue: 0 });
       break;
@@ -1112,6 +1480,8 @@ document.getElementById('globalSearch').addEventListener('input', (e) => {
   if (projMatch) { switchTab('projects'); return; }
   const invMatch = DB.inventory.find(i => i.name.toLowerCase().includes(q) || i.sku.toLowerCase().includes(q));
   if (invMatch) { switchTab('inventory'); return; }
+  const invoiceMatch = DB.invoices.find(i => i.number.toLowerCase().includes(q) || i.to.name.toLowerCase().includes(q));
+  if (invoiceMatch) { switchTab('invoices'); return; }
   const conMatch = DB.contacts.find(c => c.name.toLowerCase().includes(q));
   if (conMatch) { switchTab('contacts'); return; }
 });
