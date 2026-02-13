@@ -134,7 +134,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
         <div class="w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center text-zinc-900 font-mono font-bold text-xs">2</div>
         <h2 class="font-mono font-bold text-zinc-100 text-sm">Sign in with Google</h2>
       </div>
-      <p class="text-xs text-zinc-500 mb-5">Authenticate with your Google account to access the scrumboard sync. Your account must be authorized in the Firebase project.</p>
+      <p class="text-xs text-zinc-500 mb-5">Authenticate with your Google account. Your account must be authorized in the Firebase project.</p>
 
       <div id="loginAuthError" class="hidden mb-3 text-xs text-red-400 font-mono bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"></div>
 
@@ -208,10 +208,6 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     </a>
     <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-2.5 text-zinc-400 transition-colors cursor-pointer" data-tab="contacts">
       <i data-lucide="users" class="w-4 h-4"></i> Contacts
-    </a>
-    <div class="px-3 py-2 mt-2 text-[10px] font-mono text-zinc-600 uppercase tracking-wider">Integration</div>
-    <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-2.5 text-zinc-400 transition-colors cursor-pointer" data-tab="scrumboard">
-      <i data-lucide="refresh-cw" class="w-4 h-4"></i> Scrumboard Sync
     </a>
   </nav>
   <div class="p-4 border-t border-zinc-800">
@@ -525,88 +521,6 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       <div id="contactsList" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
     </div>
 
-    <!-- SCRUMBOARD SYNC -->
-    <div id="tab-scrumboard" class="tab-content fade-in">
-      <!-- Sync Status Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-4">
-          <div class="flex items-center justify-between mb-1">
-            <span class="text-xs text-zinc-500 font-mono">CONNECTION</span>
-            <div id="syncConnectionIcon" class="w-7 h-7 bg-zinc-800 rounded-lg flex items-center justify-center"><i data-lucide="wifi-off" class="w-3.5 h-3.5 text-zinc-500"></i></div>
-          </div>
-          <div class="font-mono font-bold text-lg" id="syncConnectionStatus">Disconnected</div>
-          <div class="text-[10px] text-zinc-500 font-mono mt-1" id="syncFirestoreDoc">kanban-boards/shared</div>
-        </div>
-        <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-4">
-          <div class="flex items-center justify-between mb-1">
-            <span class="text-xs text-zinc-500 font-mono">LAST SYNC</span>
-            <div class="w-7 h-7 bg-zinc-800 rounded-lg flex items-center justify-center"><i data-lucide="clock" class="w-3.5 h-3.5 text-zinc-400"></i></div>
-          </div>
-          <div class="font-mono font-bold text-lg text-zinc-100" id="syncLastTime">Never</div>
-          <div class="text-[10px] text-zinc-500 font-mono mt-1" id="syncDirection">—</div>
-        </div>
-        <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-4">
-          <div class="flex items-center justify-between mb-1">
-            <span class="text-xs text-zinc-500 font-mono">SYNCED ITEMS</span>
-            <div class="w-7 h-7 bg-amber-500/10 rounded-lg flex items-center justify-center"><i data-lucide="link" class="w-3.5 h-3.5 text-amber-500"></i></div>
-          </div>
-          <div class="font-mono font-bold text-lg text-amber-500" id="syncItemCount">0</div>
-          <div class="text-[10px] text-zinc-500 font-mono mt-1">project mappings</div>
-        </div>
-        <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-4">
-          <div class="flex items-center justify-between mb-1">
-            <span class="text-xs text-zinc-500 font-mono">BACKLOG CARDS</span>
-            <div class="w-7 h-7 bg-zinc-800 rounded-lg flex items-center justify-center"><i data-lucide="layers" class="w-3.5 h-3.5 text-zinc-400"></i></div>
-          </div>
-          <div class="font-mono font-bold text-lg text-zinc-100" id="syncBacklogCount">0</div>
-          <div class="text-[10px] text-zinc-500 font-mono mt-1">from scrumboard</div>
-        </div>
-      </div>
-
-      <!-- Auth & Sync Controls -->
-      <div id="syncAuthBar" class="bg-zinc-900 border border-zinc-700 rounded-lg p-4 mb-6 flex items-center justify-between">
-        <div id="syncAuthState" class="flex items-center gap-3">
-          <!-- Populated by renderScrumboardSync() -->
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="text-xs font-mono text-zinc-500" id="syncStatusText">Ready</span>
-          <div id="syncSpinner" class="hidden">
-            <svg class="animate-spin w-4 h-4 text-amber-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
-          </div>
-        </div>
-      </div>
-
-      <!-- Sync Controls -->
-      <div class="flex items-center justify-between mb-6">
-        <div class="flex items-center gap-3">
-          <button onclick="performFullSync()" id="syncNowBtn" class="bg-amber-500 hover:bg-amber-400 text-zinc-900 font-mono font-bold px-4 py-2.5 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-            <i data-lucide="refresh-cw" class="w-4 h-4"></i> Sync Now
-          </button>
-          <label class="flex items-center gap-2 text-xs font-mono text-zinc-400 cursor-pointer">
-            <input type="checkbox" id="autoSyncToggle" class="accent-amber-500" onchange="toggleAutoSync()"> Real-time listener
-          </label>
-        </div>
-      </div>
-
-      <!-- Synced Mappings Table -->
-      <div class="bg-zinc-900 border border-zinc-700 rounded-lg overflow-hidden mb-6">
-        <div class="px-5 py-3 border-b border-zinc-800 flex items-center justify-between">
-          <h3 class="font-mono font-bold text-zinc-100 text-sm">Synced Project Mappings</h3>
-          <span class="text-[10px] font-mono text-zinc-500">Scrumboard Backlog → ERP Projects</span>
-        </div>
-        <div id="syncMappingsTable"></div>
-      </div>
-
-      <!-- Sync Log -->
-      <div class="bg-zinc-900 border border-zinc-700 rounded-lg overflow-hidden">
-        <div class="px-5 py-3 border-b border-zinc-800 flex items-center justify-between">
-          <h3 class="font-mono font-bold text-zinc-100 text-sm">Sync Log</h3>
-          <button onclick="clearSyncLog()" class="text-[10px] font-mono text-zinc-500 hover:text-amber-400 transition-colors">Clear</button>
-        </div>
-        <div id="syncLogList" class="max-h-64 overflow-y-auto p-3 space-y-1"></div>
-      </div>
-    </div>
-
   </div>
 </main>
 </div>
@@ -655,7 +569,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
           <i data-lucide="folder-x" class="w-4 h-4 text-red-400"></i>
           <h4 class="font-mono font-bold text-zinc-200 text-xs">Delete Project</h4>
         </div>
-        <p class="text-[10px] text-zinc-500 mb-3">Permanently remove a project and its sync mappings from the local database.</p>
+        <p class="text-[10px] text-zinc-500 mb-3">Permanently remove a project and its BOM entries from the local database.</p>
         <div class="flex items-center gap-2">
           <select id="pu-deleteProject" class="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 font-mono text-xs text-zinc-100 focus:border-amber-500 focus:outline-none"></select>
           <button onclick="puDeleteProject()" class="bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs font-mono px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5">
@@ -677,6 +591,30 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Delete
           </button>
         </div>
+      </div>
+
+      <!-- Delete All Projects -->
+      <div class="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
+        <div class="flex items-center gap-2 mb-2">
+          <i data-lucide="folders" class="w-4 h-4 text-red-400"></i>
+          <h4 class="font-mono font-bold text-zinc-200 text-xs">Delete All Projects</h4>
+        </div>
+        <p class="text-[10px] text-zinc-500 mb-3">Remove all projects and their BOM entries from the local database. This cannot be undone.</p>
+        <button onclick="puDeleteAllProjects()" class="bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs font-mono px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5">
+          <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Delete All Projects
+        </button>
+      </div>
+
+      <!-- Clear Inventory -->
+      <div class="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
+        <div class="flex items-center gap-2 mb-2">
+          <i data-lucide="package-x" class="w-4 h-4 text-red-400"></i>
+          <h4 class="font-mono font-bold text-zinc-200 text-xs">Clear Inventory</h4>
+        </div>
+        <p class="text-[10px] text-zinc-500 mb-3">Remove all items from local inventory. Does not affect Firestore. This cannot be undone.</p>
+        <button onclick="puClearInventory()" class="bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs font-mono px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5">
+          <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Clear All Inventory
+        </button>
       </div>
 
       <!-- Purge Firestore Inventory -->
@@ -851,15 +789,7 @@ const DB = {
     { id: 'SUP-003', type: 'supplier', name: 'PCBWay', contact: 'Sales Team', email: 'sales@pcbway.com', phone: '+86 755-2349-1090', address: 'Shenzhen, China', notes: 'PCB fabrication and assembly. 5-day lead time for protos.', revenue: 0 },
     { id: 'SUP-004', type: 'supplier', name: 'MetalWorks Supply', contact: 'Beth Harmon', email: 'beth@metalworkssupply.com', phone: '+1 (503) 555-0123', address: 'Portland, OR', notes: 'Raw materials: aluminum, steel, gaskets, sealing materials.', revenue: 0 },
     { id: 'SUP-005', type: 'supplier', name: 'PrintSupply Co', contact: 'Online Store', email: 'support@printsupply.co', phone: '+1 (800) 555-0199', address: 'Chicago, IL', notes: '3D printing filaments and accessories. Bulk discount available.', revenue: 0 },
-  ],
-  scrumboardSync: {
-    enabled: false,
-    autoSync: false,
-    lastSyncAt: null,
-    lastSyncDirection: null,
-    mappings: [],
-    syncLog: []
-  }
+  ]
 };
 
 // Save/Load from localStorage
@@ -909,7 +839,7 @@ function switchTab(tab) {
   document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
-  const titles = { dashboard: 'Dashboard', projects: 'Projects', bom: 'Bill of Materials', inventory: 'Inventory', procurement: 'Procurement', manufacturing: 'Manufacturing', quotes: 'Quotes & Orders', invoices: 'Invoices', contacts: 'Contacts', scrumboard: 'Scrumboard Sync' };
+  const titles = { dashboard: 'Dashboard', projects: 'Projects', bom: 'Bill of Materials', inventory: 'Inventory', procurement: 'Procurement', manufacturing: 'Manufacturing', quotes: 'Quotes & Orders', invoices: 'Invoices', contacts: 'Contacts' };
   document.getElementById('pageTitle').textContent = titles[tab] || tab;
   renderTab(tab);
 }
@@ -925,7 +855,6 @@ function renderTab(tab) {
     case 'quotes': renderQuotesOrders(); break;
     case 'invoices': renderInvoices(); break;
     case 'contacts': renderContacts(); break;
-    case 'scrumboard': renderScrumboardSync(); break;
   }
 }
 
@@ -1702,10 +1631,6 @@ function renderContacts() {
 
 // ==================== FIREBASE CONFIG & AUTH ====================
 const FIREBASE_CONFIG_KEY = 'forgeERP_firebaseConfig';
-let firestoreDoc = null;
-let scrumboardListener = null;
-let scrumboardConnected = false;
-let _lastScrumboardState = null;
 let _firebaseAuth = null;
 let _currentUser = null;
 let _isAdmin = false;
@@ -1903,12 +1828,9 @@ async function loginWithGoogle() {
 
 async function logoutAndReset() {
   if (_firebaseAuth) {
-    stopRealtimeListener();
     try { await _firebaseAuth.signOut(); } catch (e) { /* ignore */ }
   }
   _currentUser = null;
-  firestoreDoc = null;
-  scrumboardConnected = false;
   _firebaseAuth = null;
   showLoginScreen();
 }
@@ -1957,8 +1879,7 @@ function initFirebaseFromConfig(cfg) {
     }
     _doFirebaseInit(cfg);
   } catch (err) {
-    scrumboardConnected = false;
-    addSyncLog('error', 'Firebase init failed: ' + err.message);
+    console.error('Firebase init failed:', err.message);
   }
 }
 
@@ -1969,22 +1890,12 @@ function _doFirebaseInit(cfg) {
   _firebaseAuth.onAuthStateChanged(user => {
     _currentUser = user;
     if (user) {
-      const db = firebase.firestore();
-      firestoreDoc = db.collection('kanban-boards').doc('shared');
-      scrumboardConnected = true;
-      addSyncLog('info', 'Authenticated as ' + sanitizeText(user.email || user.uid));
+      console.log('Authenticated as', user.email || user.uid);
       showApp();
       updateSidebarUser();
-      if (DB.scrumboardSync.autoSync) {
-        startRealtimeListener();
-      }
     } else {
-      firestoreDoc = null;
-      scrumboardConnected = false;
-      stopRealtimeListener();
       updateSidebarUser();
     }
-    if (currentTab === 'scrumboard') renderScrumboardSync();
   });
 }
 
@@ -2001,7 +1912,7 @@ function initFirebase() {
 
 async function signInWithGoogle() {
   if (!_firebaseAuth) {
-    addSyncLog('error', 'Firebase not initialized — configure via login screen');
+    console.error('Firebase not initialized — configure via login screen');
     return;
   }
   try {
@@ -2009,7 +1920,7 @@ async function signInWithGoogle() {
     await _firebaseAuth.signInWithPopup(provider);
   } catch (err) {
     if (err.code !== 'auth/popup-closed-by-user') {
-      addSyncLog('error', 'Sign-in failed: ' + err.message);
+      console.error('Sign-in failed:', err.message);
     }
   }
 }
@@ -2017,17 +1928,12 @@ async function signInWithGoogle() {
 async function signOutFirebase() {
   if (!_firebaseAuth) return;
   try {
-    stopRealtimeListener();
     await _firebaseAuth.signOut();
     _currentUser = null;
-    firestoreDoc = null;
-    scrumboardConnected = false;
     updateSidebarUser();
-    addSyncLog('info', 'Signed out');
   } catch (err) {
-    addSyncLog('error', 'Sign-out failed: ' + err.message);
+    console.error('Sign-out failed:', err.message);
   }
-  if (currentTab === 'scrumboard') renderScrumboardSync();
 }
 
 // ==================== SSO INTEGRATION (Parent PWA postMessage) ====================
@@ -2079,10 +1985,9 @@ async function onSSOUserSignedIn(user) {
     try {
       const credential = firebase.auth.GoogleAuthProvider.credential(user.idToken);
       await _firebaseAuth.signInWithCredential(credential);
-      addSyncLog('info', 'Signed in via parent SSO as ' + sanitizeText(user.displayName || user.email));
+      console.log('Signed in via parent SSO as', user.displayName || user.email);
     } catch (err) {
       console.warn('SSO sign-in failed, using token for display only:', err.message);
-      addSyncLog('warn', 'SSO credential sign-in failed: ' + err.message);
       // Fall back to display-only mode: populate _currentUser from SSO data
       _currentUser = {
         uid: user.uid,
@@ -2102,11 +2007,8 @@ async function onSSOUserSignedOut() {
   }
   _currentUser = null;
   _isAdmin = false;
-  firestoreDoc = null;
-  scrumboardConnected = false;
-  stopRealtimeListener();
   updateSidebarUser();
-  addSyncLog('info', 'SSO user signed out');
+  console.log('SSO user signed out');
 }
 
 // ---- Per-user Firestore data (under /users/{uid}/app_data/) ----
@@ -2164,13 +2066,11 @@ function puDeleteProject() {
   if (!id) return;
   const proj = DB.projects.find(p => p.id === id);
   if (!proj) return;
-  if (!confirm('Delete project "' + proj.name + '" (' + id + ')?\n\nThis also removes related BOM entries and sync mappings. This cannot be undone.')) return;
+  if (!confirm('Delete project "' + proj.name + '" (' + id + ')?\n\nThis also removes related BOM entries. This cannot be undone.')) return;
 
   DB.projects = DB.projects.filter(p => p.id !== id);
   DB.bom = DB.bom.filter(b => b.projectId !== id);
-  DB.scrumboardSync.mappings = DB.scrumboardSync.mappings.filter(m => m.erpProjectId !== id);
   saveDB();
-  addSyncLog('info', 'Deleted project ' + id + ' (' + proj.name + ')');
   populateSettingsDropdowns();
   if (currentTab === 'projects') renderProjects();
   if (currentTab === 'bom') renderBOM();
@@ -2186,7 +2086,31 @@ function puDeleteInventoryItem() {
 
   DB.inventory = DB.inventory.filter(i => i.id !== id);
   saveDB();
-  addSyncLog('info', 'Deleted inventory item ' + id + ' (' + item.name + ')');
+  console.log( 'Deleted inventory item ' + id + ' (' + item.name + ')');
+  populateSettingsDropdowns();
+  if (currentTab === 'inventory') renderInventory();
+  if (currentTab === 'dashboard') renderDashboard();
+}
+
+function puDeleteAllProjects() {
+  if (DB.projects.length === 0) { alert('No projects to delete.'); return; }
+  if (!confirm('Delete ALL ' + DB.projects.length + ' projects and their BOM entries?\n\nThis cannot be undone.')) return;
+
+  DB.projects = [];
+  DB.bom = [];
+  saveDB();
+  populateSettingsDropdowns();
+  if (currentTab === 'projects') renderProjects();
+  if (currentTab === 'bom') renderBOM();
+  if (currentTab === 'dashboard') renderDashboard();
+}
+
+function puClearInventory() {
+  if (DB.inventory.length === 0) { alert('Inventory is already empty.'); return; }
+  if (!confirm('Clear ALL ' + DB.inventory.length + ' inventory items?\n\nLocal inventory will be emptied. Firestore is not affected. This cannot be undone.')) return;
+
+  DB.inventory = [];
+  saveDB();
   populateSettingsDropdowns();
   if (currentTab === 'inventory') renderInventory();
   if (currentTab === 'dashboard') renderDashboard();
@@ -2206,10 +2130,10 @@ async function puPurgeFirestoreInventory() {
     const batch = firebase.firestore().batch();
     snapshot.forEach(doc => batch.delete(doc.ref));
     await batch.commit();
-    addSyncLog('warn', 'Purged ' + snapshot.size + ' documents from /lab-inventory');
+    console.warn( 'Purged ' + snapshot.size + ' documents from /lab-inventory');
     alert('Purged ' + snapshot.size + ' documents from Firestore /lab-inventory.');
   } catch (err) {
-    addSyncLog('error', 'Firestore purge failed: ' + err.message);
+    console.error( 'Firestore purge failed: ' + err.message);
     alert('Purge failed: ' + err.message);
   } finally {
     btn.disabled = false;
@@ -2229,7 +2153,7 @@ function puExportDB() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  addSyncLog('info', 'Database exported to JSON');
+  console.log( 'Database exported to JSON');
 }
 
 function puImportDB(event) {
@@ -2248,7 +2172,7 @@ function puImportDB(event) {
       // Merge imported keys into DB
       Object.keys(imported).forEach(k => { if (DB.hasOwnProperty(k)) DB[k] = imported[k]; });
       saveDB();
-      addSyncLog('info', 'Database imported from ' + file.name);
+      console.log( 'Database imported from ' + file.name);
       alert('Import successful. Refreshing view...');
       populateSettingsDropdowns();
       renderTab(currentTab);
@@ -2288,13 +2212,13 @@ function getLabInventoryCollection() {
 
 async function pushInventoryToFirestore() {
   const col = getLabInventoryCollection();
-  if (!col) { addSyncLog('error', 'Inventory push failed — not authenticated'); return; }
+  if (!col) { console.error( 'Inventory push failed — not authenticated'); return; }
   if (_inventorySyncing) return;
   _inventorySyncing = true;
   updateInventorySyncUI('pushing');
 
   try {
-    addSyncLog('info', 'Inventory push: uploading ' + DB.inventory.length + ' items to /lab-inventory...');
+    console.log( 'Inventory push: uploading ' + DB.inventory.length + ' items to /lab-inventory...');
     const batch = firebase.firestore().batch();
 
     // Write each inventory item as a doc keyed by its id
@@ -2317,9 +2241,9 @@ async function pushInventoryToFirestore() {
     });
 
     await batch.commit();
-    addSyncLog('info', 'Inventory push: ' + DB.inventory.length + ' items written to Firestore');
+    console.log( 'Inventory push: ' + DB.inventory.length + ' items written to Firestore');
   } catch (err) {
-    addSyncLog('error', 'Inventory push failed: ' + err.message);
+    console.error( 'Inventory push failed: ' + err.message);
   } finally {
     _inventorySyncing = false;
     updateInventorySyncUI('idle');
@@ -2328,17 +2252,17 @@ async function pushInventoryToFirestore() {
 
 async function pullInventoryFromFirestore() {
   const col = getLabInventoryCollection();
-  if (!col) { addSyncLog('error', 'Inventory pull failed — not authenticated'); return; }
+  if (!col) { console.error( 'Inventory pull failed — not authenticated'); return; }
   if (_inventorySyncing) return;
   _inventorySyncing = true;
   updateInventorySyncUI('pulling');
 
   try {
-    addSyncLog('info', 'Inventory pull: fetching /lab-inventory...');
+    console.log( 'Inventory pull: fetching /lab-inventory...');
     const snapshot = await col.get();
 
     if (snapshot.empty) {
-      addSyncLog('warn', 'Inventory pull: /lab-inventory collection is empty');
+      console.warn( 'Inventory pull: /lab-inventory collection is empty');
       _inventorySyncing = false;
       updateInventorySyncUI('idle');
       return;
@@ -2385,10 +2309,10 @@ async function pullInventoryFromFirestore() {
     });
 
     saveDB();
-    addSyncLog('info', `Inventory pull: ${created} created, ${updated} updated from ${snapshot.size} remote items`);
+    console.log( `Inventory pull: ${created} created, ${updated} updated from ${snapshot.size} remote items`);
     if (currentTab === 'inventory') renderInventory();
   } catch (err) {
-    addSyncLog('error', 'Inventory pull failed: ' + err.message);
+    console.error( 'Inventory pull failed: ' + err.message);
   } finally {
     _inventorySyncing = false;
     updateInventorySyncUI('idle');
@@ -2397,13 +2321,13 @@ async function pullInventoryFromFirestore() {
 
 async function syncInventoryBidirectional() {
   const col = getLabInventoryCollection();
-  if (!col) { addSyncLog('error', 'Inventory sync failed — not authenticated'); return; }
+  if (!col) { console.error( 'Inventory sync failed — not authenticated'); return; }
   if (_inventorySyncing) return;
   _inventorySyncing = true;
   updateInventorySyncUI('syncing');
 
   try {
-    addSyncLog('info', 'Inventory 2-way sync starting...');
+    console.log( 'Inventory 2-way sync starting...');
 
     // Step 1: Pull remote items
     const snapshot = await col.get();
@@ -2471,10 +2395,10 @@ async function syncInventoryBidirectional() {
     await batch.commit();
 
     saveDB();
-    addSyncLog('info', `Inventory sync: ${created} created, ${updated} updated, ${pushed} pushed to Firestore`);
+    console.log( `Inventory sync: ${created} created, ${updated} updated, ${pushed} pushed to Firestore`);
     if (currentTab === 'inventory') renderInventory();
   } catch (err) {
-    addSyncLog('error', 'Inventory sync failed: ' + err.message);
+    console.error( 'Inventory sync failed: ' + err.message);
   } finally {
     _inventorySyncing = false;
     updateInventorySyncUI('idle');
@@ -2530,22 +2454,22 @@ function startInventoryListener() {
 
     if (created > 0 || updated > 0) {
       saveDB();
-      addSyncLog('info', `Inventory realtime: ${created} created, ${updated} updated`);
+      console.log( `Inventory realtime: ${created} created, ${updated} updated`);
       if (currentTab === 'inventory') renderInventory();
     }
   }, err => {
-    addSyncLog('error', 'Inventory listener error: ' + err.message);
+    console.error( 'Inventory listener error: ' + err.message);
     _inventoryListener = null;
   });
 
-  addSyncLog('info', 'Inventory realtime listener started on /lab-inventory');
+  console.log( 'Inventory realtime listener started on /lab-inventory');
 }
 
 function stopInventoryListener() {
   if (_inventoryListener) {
     _inventoryListener();
     _inventoryListener = null;
-    addSyncLog('info', 'Inventory realtime listener stopped');
+    console.log( 'Inventory realtime listener stopped');
   }
 }
 
@@ -2576,535 +2500,13 @@ function updateInventorySyncUI(state) {
   }
 }
 
-// ==================== SCRUMBOARD SYNC ====================
+// ==================== UTILITIES ====================
 
 function sanitizeText(str) {
   if (typeof str !== 'string') return '';
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
-}
-
-function validateScrumboardState(data) {
-  if (!data || typeof data !== 'object') return false;
-  if (!Array.isArray(data.projects)) return false;
-  for (const project of data.projects) {
-    if (typeof project.id !== 'string' || typeof project.name !== 'string') return false;
-    if (project.cards && !Array.isArray(project.cards)) return false;
-    if (project.columns && !Array.isArray(project.columns)) return false;
-  }
-  return true;
-}
-
-function addSyncLog(type, message) {
-  DB.scrumboardSync.syncLog.unshift({
-    type,
-    message,
-    timestamp: Date.now()
-  });
-  if (DB.scrumboardSync.syncLog.length > 100) {
-    DB.scrumboardSync.syncLog = DB.scrumboardSync.syncLog.slice(0, 100);
-  }
-  saveDB();
-}
-
-function extractBacklogCards(scrumboardState) {
-  const backlogCards = [];
-  if (!scrumboardState || !scrumboardState.projects) return backlogCards;
-
-  scrumboardState.projects.forEach(project => {
-    if (!project.cards || !project.columns) return;
-
-    const backlogColumnIds = project.columns
-      .filter(col => col.name.toLowerCase() === 'backlog')
-      .map(col => col.id);
-
-    project.cards.forEach(card => {
-      const isBacklog = !card.columnId ||
-        card.columnId === '' ||
-        card.columnId === 'backlog' ||
-        backlogColumnIds.includes(card.columnId);
-
-      if (isBacklog) {
-        backlogCards.push({
-          ...card,
-          _scrumboardProjectId: project.id,
-          _scrumboardProjectName: project.name
-        });
-      }
-    });
-  });
-
-  return backlogCards;
-}
-
-function mapCardPriorityToERP(priority) {
-  const map = { critical: 'high', high: 'high', medium: 'medium', low: 'low' };
-  return map[priority] || 'medium';
-}
-
-function mapERPStatusToCard(status) {
-  const map = {
-    planning: 'low', design: 'medium', prototyping: 'medium',
-    testing: 'high', production: 'high', completed: 'low'
-  };
-  return map[status] || 'medium';
-}
-
-function findMappingByCardId(cardId) {
-  return DB.scrumboardSync.mappings.find(m => m.scrumboardCardId === cardId);
-}
-
-function findMappingByERPId(erpId) {
-  return DB.scrumboardSync.mappings.find(m => m.erpProjectId === erpId);
-}
-
-// Coerce Firestore values to safe types — prevents type confusion from untrusted data
-function safeStr(val, maxLen) {
-  if (typeof val !== 'string') return '';
-  return maxLen ? val.slice(0, maxLen) : val.slice(0, 1000);
-}
-function safeArr(val) { return Array.isArray(val) ? val : []; }
-function safeNum(val) { const n = Number(val); return Number.isFinite(n) ? n : 0; }
-
-function syncFromScrumboard(scrumboardState) {
-  const backlogCards = extractBacklogCards(scrumboardState);
-  let created = 0;
-  let updated = 0;
-
-  backlogCards.forEach(card => {
-    if (typeof card.id !== 'string') return; // skip invalid cards
-
-    const existing = findMappingByCardId(card.id);
-
-    if (existing) {
-      const erpProject = DB.projects.find(p => p.id === existing.erpProjectId);
-      if (erpProject) {
-        const cardModified = safeNum(card.createdAt);
-        const lastSync = existing.lastSyncAt || 0;
-
-        if (cardModified > lastSync) {
-          erpProject.name = safeStr(card.title, 200) || erpProject.name;
-          erpProject.description = safeStr(card.description, 5000) || erpProject.description;
-          erpProject.priority = mapCardPriorityToERP(safeStr(card.priority, 20));
-          if (card.dueDate) erpProject.deadline = safeStr(card.dueDate, 10);
-          if (card.assignee) erpProject.lead = safeStr(card.assignee, 100);
-          if (card.storyPoints) erpProject.scrumboardStoryPoints = card.storyPoints;
-          erpProject.scrumboardLabels = safeArr(card.labels);
-          erpProject.scrumboardType = safeStr(card.type, 20);
-          erpProject.syncedAt = Date.now();
-          existing.lastSyncAt = Date.now();
-          updated++;
-        }
-      }
-    } else {
-      const newProject = {
-        id: nextId(DB.projects, 'PRJ'),
-        name: safeStr(card.title, 200) || 'Untitled Card',
-        client: safeStr(card._scrumboardProjectName, 200),
-        status: 'planning',
-        priority: mapCardPriorityToERP(safeStr(card.priority, 20)),
-        lead: safeStr(card.assignee, 100),
-        startDate: new Date().toISOString().split('T')[0],
-        deadline: safeStr(card.dueDate, 10),
-        progress: 0,
-        description: safeStr(card.description, 5000),
-        budget: 0,
-        // ERP-specific fields created during sync
-        syncSource: 'scrumboard',
-        syncedAt: Date.now(),
-        scrumboardProjectId: safeStr(card._scrumboardProjectId, 100),
-        scrumboardCardId: safeStr(card.id, 100),
-        scrumboardProjectName: safeStr(card._scrumboardProjectName, 200),
-        scrumboardStoryPoints: card.storyPoints || '',
-        scrumboardLabels: safeArr(card.labels),
-        scrumboardType: safeStr(card.type, 20),
-        scrumboardMaterials: safeStr(card.materials, 2000),
-        scrumboardEstimatedTime: safeStr(card.estimatedTime, 50),
-        scrumboardSubtasks: safeArr(card.subtasks),
-        scrumboardDependencies: safeArr(card.dependencies),
-        erpBudget: 0,
-        erpCostCenter: '',
-        erpApprovalStatus: 'pending',
-        erpInternalNotes: '',
-        erpTargetMargin: 0,
-        erpResourceAllocation: ''
-      };
-
-      DB.projects.push(newProject);
-
-      DB.scrumboardSync.mappings.push({
-        erpProjectId: newProject.id,
-        scrumboardProjectId: safeStr(card._scrumboardProjectId, 100),
-        scrumboardCardId: safeStr(card.id, 100),
-        scrumboardProjectName: safeStr(card._scrumboardProjectName, 200),
-        cardTitle: safeStr(card.title, 200),
-        lastSyncAt: Date.now(),
-        createdAt: Date.now()
-      });
-
-      created++;
-    }
-  });
-
-  return { created, updated, total: backlogCards.length };
-}
-
-function buildERPFieldsForCard(erpProject) {
-  return {
-    erp: {
-      projectId: erpProject.id,
-      status: erpProject.status,
-      budget: erpProject.budget || 0,
-      lead: erpProject.lead || '',
-      client: erpProject.client || '',
-      progress: erpProject.progress || 0,
-      costCenter: erpProject.erpCostCenter || '',
-      approvalStatus: erpProject.erpApprovalStatus || 'pending',
-      targetMargin: erpProject.erpTargetMargin || 0,
-      resourceAllocation: erpProject.erpResourceAllocation || '',
-      lastSyncAt: Date.now()
-    }
-  };
-}
-
-function syncToScrumboard(scrumboardState) {
-  if (!scrumboardState || !scrumboardState.projects) return { pushed: 0 };
-  let pushed = 0;
-
-  DB.scrumboardSync.mappings.forEach(mapping => {
-    const erpProject = DB.projects.find(p => p.id === mapping.erpProjectId);
-    if (!erpProject) return;
-
-    const scrumProject = scrumboardState.projects.find(p => p.id === mapping.scrumboardProjectId);
-    if (!scrumProject || !scrumProject.cards) return;
-
-    const cardIndex = scrumProject.cards.findIndex(c => c.id === mapping.scrumboardCardId);
-    if (cardIndex === -1) return;
-
-    const card = scrumProject.cards[cardIndex];
-    const erpFields = buildERPFieldsForCard(erpProject);
-
-    scrumProject.cards[cardIndex] = {
-      ...card,
-      ...erpFields,
-      priority: mapERPStatusToCard(erpProject.status),
-      assignee: erpProject.lead || card.assignee,
-      description: erpProject.description || card.description
-    };
-
-    mapping.lastSyncAt = Date.now();
-    mapping.cardTitle = erpProject.name;
-    pushed++;
-  });
-
-  return { pushed };
-}
-
-async function performFullSync() {
-  if (!_currentUser) {
-    addSyncLog('error', 'Not authenticated — sign in before syncing');
-    if (currentTab === 'scrumboard') renderScrumboardSync();
-    return;
-  }
-  if (!firestoreDoc) {
-    addSyncLog('error', 'Firebase not initialized — cannot sync');
-    if (currentTab === 'scrumboard') renderScrumboardSync();
-    return;
-  }
-
-  const spinner = document.getElementById('syncSpinner');
-  const statusText = document.getElementById('syncStatusText');
-  const syncBtn = document.getElementById('syncNowBtn');
-  if (spinner) spinner.classList.remove('hidden');
-  if (statusText) statusText.textContent = 'Syncing...';
-  if (syncBtn) syncBtn.disabled = true;
-
-  try {
-    addSyncLog('info', 'Starting 2-way sync as ' + sanitizeText(_currentUser.email || _currentUser.uid) + '...');
-
-    // Step 1: Fetch current scrumboard state from Firestore
-    const doc = await firestoreDoc.get();
-    if (!doc.exists) {
-      addSyncLog('warn', 'Scrumboard document does not exist in Firestore');
-      return;
-    }
-
-    const scrumboardState = doc.data();
-
-    // Validate inbound data structure
-    if (!validateScrumboardState(scrumboardState)) {
-      addSyncLog('error', 'Rejected: Firestore data failed schema validation');
-      return;
-    }
-
-    _lastScrumboardState = scrumboardState;
-
-    // Step 2: Pull — Sync backlog cards from scrumboard into ERP
-    const pullResult = syncFromScrumboard(scrumboardState);
-    addSyncLog('info', `Pull: ${pullResult.created} created, ${pullResult.updated} updated (${pullResult.total} backlog cards found)`);
-
-    // Step 3: Push — Write ERP fields back to scrumboard cards
-    const pushResult = syncToScrumboard(scrumboardState);
-    addSyncLog('info', `Push: ${pushResult.pushed} cards updated with ERP fields`);
-
-    // Step 4: Write only the projects array back (scoped update, not full .set())
-    if (pushResult.pushed > 0) {
-      await firestoreDoc.update({
-        projects: JSON.parse(JSON.stringify(scrumboardState.projects))
-      });
-      addSyncLog('info', 'Firestore updated (scoped to projects field only)');
-    }
-
-    // Update sync metadata
-    DB.scrumboardSync.lastSyncAt = Date.now();
-    DB.scrumboardSync.lastSyncDirection = 'bidirectional';
-    DB.scrumboardSync.enabled = true;
-    saveDB();
-
-    addSyncLog('info', '2-way sync completed successfully');
-  } catch (err) {
-    addSyncLog('error', 'Sync failed: ' + err.message);
-  } finally {
-    if (spinner) spinner.classList.add('hidden');
-    if (statusText) statusText.textContent = 'Ready';
-    if (syncBtn) syncBtn.disabled = false;
-    if (currentTab === 'scrumboard') renderScrumboardSync();
-  }
-}
-
-function startRealtimeListener() {
-  if (scrumboardListener) return;
-  if (!firestoreDoc) {
-    addSyncLog('error', 'Cannot start listener — Firebase not initialized');
-    return;
-  }
-
-  scrumboardListener = firestoreDoc.onSnapshot(doc => {
-    if (doc.exists && !doc.metadata.hasPendingWrites) {
-      const scrumboardState = doc.data();
-
-      if (!validateScrumboardState(scrumboardState)) {
-        addSyncLog('error', 'Realtime: rejected snapshot — failed schema validation');
-        return;
-      }
-
-      _lastScrumboardState = scrumboardState;
-      const pullResult = syncFromScrumboard(scrumboardState);
-
-      if (pullResult.created > 0 || pullResult.updated > 0) {
-        DB.scrumboardSync.lastSyncAt = Date.now();
-        DB.scrumboardSync.lastSyncDirection = 'pull (realtime)';
-        saveDB();
-        addSyncLog('info', `Realtime pull: ${pullResult.created} created, ${pullResult.updated} updated`);
-        if (currentTab === 'scrumboard') renderScrumboardSync();
-        if (currentTab === 'projects') renderProjects();
-      }
-    }
-  }, err => {
-    addSyncLog('error', 'Realtime listener error: ' + err.message);
-    scrumboardConnected = false;
-    if (currentTab === 'scrumboard') renderScrumboardSync();
-  });
-
-  addSyncLog('info', 'Realtime listener started');
-}
-
-function stopRealtimeListener() {
-  if (scrumboardListener) {
-    scrumboardListener();
-    scrumboardListener = null;
-    addSyncLog('info', 'Realtime listener stopped');
-  }
-}
-
-function toggleAutoSync() {
-  const checked = document.getElementById('autoSyncToggle').checked;
-  DB.scrumboardSync.autoSync = checked;
-  saveDB();
-
-  if (checked) {
-    startRealtimeListener();
-  } else {
-    stopRealtimeListener();
-  }
-  renderScrumboardSync();
-}
-
-function clearSyncLog() {
-  DB.scrumboardSync.syncLog = [];
-  saveDB();
-  renderScrumboardSync();
-}
-
-function unlinkMapping(cardId) {
-  const mapping = findMappingByCardId(cardId);
-  if (!mapping) return;
-
-  const erpProject = DB.projects.find(p => p.id === mapping.erpProjectId);
-  if (erpProject) {
-    delete erpProject.syncSource;
-    delete erpProject.syncedAt;
-    delete erpProject.scrumboardProjectId;
-    delete erpProject.scrumboardCardId;
-    delete erpProject.scrumboardProjectName;
-    delete erpProject.scrumboardStoryPoints;
-    delete erpProject.scrumboardLabels;
-    delete erpProject.scrumboardType;
-    delete erpProject.scrumboardMaterials;
-    delete erpProject.scrumboardEstimatedTime;
-    delete erpProject.scrumboardSubtasks;
-    delete erpProject.scrumboardDependencies;
-  }
-
-  DB.scrumboardSync.mappings = DB.scrumboardSync.mappings.filter(m => m.scrumboardCardId !== cardId);
-  saveDB();
-  addSyncLog('info', 'Unlinked mapping for card ' + cardId);
-  renderScrumboardSync();
-}
-
-function formatSyncTime(ts) {
-  if (!ts) return 'Never';
-  const d = new Date(ts);
-  const now = new Date();
-  const diff = now - d;
-  if (diff < 60000) return 'Just now';
-  if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
-  if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-}
-
-function renderScrumboardSync() {
-  const isConfigured = isFirebaseConfigured();
-  const isAuthed = !!_currentUser;
-
-  // Auth bar
-  const authEl = document.getElementById('syncAuthState');
-  if (!isConfigured) {
-    authEl.innerHTML = `
-      <div class="flex items-center gap-3">
-        <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400"></i>
-        <span class="text-xs font-mono text-amber-400">Firebase not configured</span>
-        <button onclick="showLoginScreen()" class="bg-zinc-700 hover:bg-zinc-600 text-zinc-100 text-xs font-mono px-3 py-1.5 rounded-lg transition-colors">Configure now</button>
-      </div>
-    `;
-  } else if (!isAuthed) {
-    authEl.innerHTML = `
-      <div class="flex items-center gap-3">
-        <i data-lucide="shield-alert" class="w-4 h-4 text-zinc-500"></i>
-        <span class="text-xs font-mono text-zinc-400">Sign in to enable sync</span>
-        <button onclick="signInWithGoogle()" class="bg-zinc-700 hover:bg-zinc-600 text-zinc-100 text-xs font-mono px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2">
-          <svg class="w-4 h-4" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-          Sign in with Google
-        </button>
-      </div>
-    `;
-  } else {
-    const email = sanitizeText(_currentUser.email || _currentUser.uid);
-    const photo = _currentUser.photoURL ? `<img src="${sanitizeText(_currentUser.photoURL)}" class="w-6 h-6 rounded-full" referrerpolicy="no-referrer" alt="">` : `<div class="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center text-green-400 font-mono text-[10px] font-bold">${email[0].toUpperCase()}</div>`;
-    authEl.innerHTML = `
-      <div class="flex items-center gap-3">
-        <i data-lucide="shield-check" class="w-4 h-4 text-green-400"></i>
-        ${photo}
-        <span class="text-xs font-mono text-zinc-300">${email}</span>
-        <button onclick="signOutFirebase()" class="text-xs font-mono text-zinc-500 hover:text-red-400 transition-colors px-2 py-1 rounded hover:bg-zinc-800">Sign out</button>
-      </div>
-    `;
-  }
-
-  // Disable sync controls if not authenticated
-  const syncBtn = document.getElementById('syncNowBtn');
-  const autoToggle = document.getElementById('autoSyncToggle');
-  if (syncBtn) syncBtn.disabled = !isAuthed;
-  if (autoToggle) autoToggle.disabled = !isAuthed;
-
-  // Connection status
-  const connEl = document.getElementById('syncConnectionStatus');
-  const connIcon = document.getElementById('syncConnectionIcon');
-  if (isAuthed && scrumboardConnected) {
-    connEl.textContent = 'Connected';
-    connEl.className = 'font-mono font-bold text-lg text-green-400';
-    connIcon.innerHTML = '<i data-lucide="shield-check" class="w-3.5 h-3.5 text-green-400"></i>';
-    connIcon.className = 'w-7 h-7 bg-green-500/10 rounded-lg flex items-center justify-center';
-  } else if (isConfigured && !isAuthed) {
-    connEl.textContent = 'Not signed in';
-    connEl.className = 'font-mono font-bold text-lg text-amber-400';
-    connIcon.innerHTML = '<i data-lucide="shield-alert" class="w-3.5 h-3.5 text-amber-400"></i>';
-    connIcon.className = 'w-7 h-7 bg-amber-500/10 rounded-lg flex items-center justify-center';
-  } else {
-    connEl.textContent = 'Disconnected';
-    connEl.className = 'font-mono font-bold text-lg text-zinc-500';
-    connIcon.innerHTML = '<i data-lucide="wifi-off" class="w-3.5 h-3.5 text-zinc-500"></i>';
-    connIcon.className = 'w-7 h-7 bg-zinc-800 rounded-lg flex items-center justify-center';
-  }
-
-  // Last sync
-  document.getElementById('syncLastTime').textContent = formatSyncTime(DB.scrumboardSync.lastSyncAt);
-  document.getElementById('syncDirection').textContent = DB.scrumboardSync.lastSyncDirection || '—';
-
-  // Counts
-  document.getElementById('syncItemCount').textContent = DB.scrumboardSync.mappings.length;
-
-  const backlogCount = _lastScrumboardState ? extractBacklogCards(_lastScrumboardState).length : 0;
-  document.getElementById('syncBacklogCount').textContent = backlogCount;
-
-  // Auto-sync toggle
-  document.getElementById('autoSyncToggle').checked = DB.scrumboardSync.autoSync;
-
-  // Mappings table — all Firestore-sourced strings are sanitized
-  const mappings = DB.scrumboardSync.mappings;
-  const tableEl = document.getElementById('syncMappingsTable');
-
-  if (mappings.length === 0) {
-    tableEl.innerHTML = '<div class="text-center text-zinc-500 font-mono py-8 text-xs">' + (isAuthed ? 'No synced items yet. Click "Sync Now" to pull backlog cards from the scrumboard.' : 'Sign in to start syncing backlog cards.') + '</div>';
-  } else {
-    tableEl.innerHTML = `
-      <table class="w-full text-xs">
-        <thead class="bg-zinc-800"><tr>
-          <th class="text-left px-4 py-3 text-zinc-500 font-mono font-normal">ERP Project</th>
-          <th class="text-left px-4 py-3 text-zinc-500 font-mono font-normal">Scrumboard Card</th>
-          <th class="text-left px-4 py-3 text-zinc-500 font-mono font-normal">Board</th>
-          <th class="text-left px-4 py-3 text-zinc-500 font-mono font-normal">ERP Status</th>
-          <th class="text-left px-4 py-3 text-zinc-500 font-mono font-normal">ERP Fields</th>
-          <th class="text-center px-4 py-3 text-zinc-500 font-mono font-normal">Last Sync</th>
-          <th class="px-4 py-3"></th>
-        </tr></thead>
-        <tbody>${mappings.map(m => {
-          const erp = DB.projects.find(p => p.id === m.erpProjectId);
-          const erpStatus = erp ? erp.status : 'unknown';
-          const hasErpFields = erp && erp.syncSource === 'scrumboard';
-          return `<tr class="border-t border-zinc-800 hover:bg-zinc-800/50">
-            <td class="px-4 py-3"><span class="font-mono text-amber-400">${sanitizeText(m.erpProjectId)}</span><div class="text-zinc-400 mt-0.5 truncate max-w-[180px]">${erp ? sanitizeText(erp.name) : 'Deleted'}</div></td>
-            <td class="px-4 py-3 font-mono text-zinc-300 truncate max-w-[160px]">${sanitizeText(m.cardTitle || m.scrumboardCardId)}</td>
-            <td class="px-4 py-3 text-zinc-500 truncate max-w-[120px]">${sanitizeText(m.scrumboardProjectName || '—')}</td>
-            <td class="px-4 py-3"><span class="text-xs px-2 py-0.5 rounded font-mono ${statusColor(erpStatus)}">${statusLabel(erpStatus)}</span></td>
-            <td class="px-4 py-3">${hasErpFields ? '<span class="text-xs px-2 py-0.5 rounded font-mono bg-green-500/20 text-green-400">Active</span>' : '<span class="text-xs px-2 py-0.5 rounded font-mono bg-zinc-600 text-zinc-400">None</span>'}</td>
-            <td class="px-4 py-3 text-center font-mono text-zinc-500">${formatSyncTime(m.lastSyncAt)}</td>
-            <td class="px-4 py-3"><button class="text-zinc-600 hover:text-red-400 transition-colors" onclick="unlinkMapping('${sanitizeText(m.scrumboardCardId)}')"><i data-lucide="unlink" class="w-3.5 h-3.5"></i></button></td>
-          </tr>`;
-        }).join('')}</tbody>
-      </table>
-    `;
-  }
-
-  // Sync log
-  const logEl = document.getElementById('syncLogList');
-  const logs = DB.scrumboardSync.syncLog;
-  if (logs.length === 0) {
-    logEl.innerHTML = '<div class="text-center text-zinc-600 font-mono py-4 text-[10px]">No sync activity</div>';
-  } else {
-    const iconMap = { info: 'text-blue-400', warn: 'text-amber-400', error: 'text-red-400' };
-    const lucideMap = { info: 'info', warn: 'alert-triangle', error: 'x-circle' };
-    logEl.innerHTML = logs.map(l => `
-      <div class="flex items-start gap-2 px-2 py-1 rounded hover:bg-zinc-800/50 text-[11px]">
-        <i data-lucide="${lucideMap[l.type] || 'info'}" class="w-3 h-3 ${iconMap[l.type] || 'text-zinc-500'} mt-0.5 flex-shrink-0"></i>
-        <span class="text-zinc-400 flex-1">${sanitizeText(l.message)}</span>
-        <span class="text-zinc-600 font-mono flex-shrink-0">${formatSyncTime(l.timestamp)}</span>
-      </div>
-    `).join('');
-  }
-
-  lucide.createIcons();
 }
 
 // ==================== MODAL SYSTEM ====================
