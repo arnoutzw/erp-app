@@ -1,10 +1,14 @@
 /**
- * Firebase Configuration Template
+ * Firebase Configuration Reference
  *
- * Copy this file to firebase-config.js and fill in your credentials.
- * Get them from: https://console.firebase.google.com → Project Settings → General → Your apps
+ * The app now uses a built-in login screen to collect these values.
+ * They are stored in browser localStorage (key: forgeERP_firebaseConfig),
+ * never committed to source control.
  *
- * IMPORTANT: Never commit firebase-config.js — it is gitignored.
+ * Get your credentials from:
+ *   https://console.firebase.google.com → Project Settings → General → Your apps
+ *
+ * This file is for reference only — it is NOT loaded by the application.
  */
 const FIREBASE_CONFIG = {
   apiKey:            '',   // Required — Firebase Web API Key
