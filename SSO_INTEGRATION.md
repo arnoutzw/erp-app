@@ -1,251 +1,187 @@
-# SSO Integration — ForgeERP
+# SSO Integration Guide for Child PWAs
 
-Firebase Google SSO authentication for ForgeERP.
-All auth state is client-side; credentials are stored in `localStorage`, never committed to source control.
-
----
-
-## Architecture Overview
-
-```
-┌────────────────────┐      ┌────────────────────────┐
-│   Login Screen     │      │   Firebase Console      │
-│  (2-step wizard)   │─────▶│  Google Auth Provider   │
-│                    │      │  Firestore DB           │
-└────────┬───────────┘      └────────────┬────────────┘
-         │                               │
-         │  signInWithPopup()            │ onAuthStateChanged()
-         ▼                               ▼
-┌────────────────────┐      ┌────────────────────────┐
-│   _firebaseAuth    │◀────▶│   _currentUser          │
-│  (Auth instance)   │      │  (Google user object)   │
-└────────┬───────────┘      └────────────┬────────────┘
-         │                               │
-         ▼                               ▼
-┌────────────────────┐      ┌────────────────────────┐
-│  Firestore Sync    │      │  Sidebar user display   │
-│  kanban-boards/    │      │  + Settings gear        │
-│  lab-inventory/    │      │  + Sign-out button      │
-└────────────────────┘      └────────────────────────┘
-```
-
-## SDK
-
-Firebase JS SDK 9.23.0 (compat layer) loaded via CDN:
-
-```html
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-```
+This document describes how embedded PWA apps (iframes) can receive and use Firebase SSO credentials from the parent Zwartbol Industries portfolio.
 
 ---
 
-## Login Flow (2-Step)
+## How It Works
 
-### Step 1 — Firebase Configuration
+The parent portfolio (`index.html`) authenticates users via Firebase Auth (Google SSO). When a user is signed in, the parent broadcasts auth credentials to every embedded iframe via `postMessage`. Child PWAs listen for this message to receive the user's identity and a Firebase ID token.
 
-The user provides their Firebase project credentials. Two input methods:
+---
 
-| Method | Description |
-|--------|-------------|
-| **Paste snippet** | Paste the full `const firebaseConfig = { ... }` from the Firebase Console. Auto-parsed with regex. |
-| **Manual entry** | Fill individual fields: `apiKey` (required, must start with `AIza`), `projectId` (required), plus optional `authDomain`, `storageBucket`, `messagingSenderId`, `appId`. |
+## Message Format
 
-`authDomain` and `storageBucket` auto-fill from `projectId` (e.g. `my-project.firebaseapp.com`).
+The parent sends a message of type `admin-auth` to all embedded iframes:
 
-On submit the config is validated and saved to `localStorage` under key `forgeERP_firebaseConfig`:
-
-```js
-function saveFirebaseConfig(cfg) {
-  localStorage.setItem(FIREBASE_CONFIG_KEY, JSON.stringify(cfg));
+```javascript
+{
+  type: 'admin-auth',
+  isAdmin: boolean,           // Whether the user has admin privileges
+  key: string | null,         // Admin password (legacy, for backward compat)
+  sso: {                      // null when no SSO user is signed in
+    uid: string,              // Firebase user ID
+    email: string,            // User email address
+    displayName: string,      // User display name
+    photoURL: string,         // User avatar URL
+    idToken: string,          // Firebase ID token (JWT) — use for Firestore/API auth
+  } | null,
 }
 ```
 
-If a config already exists in storage, step 1 is skipped — the user goes straight to step 2.
-
-A **"Skip — use ERP without sync"** button lets the user bypass auth entirely and use the app offline-only.
-
-### Step 2 — Google Sign-In
-
-Triggers a Google OAuth popup via Firebase Auth:
-
-```js
-const provider = new firebase.auth.GoogleAuthProvider();
-await _firebaseAuth.signInWithPopup(provider);
-```
-
-On success, `onAuthStateChanged` fires and the app transitions to the main shell. On failure, an error banner is shown (except for `auth/popup-closed-by-user` which is silently ignored).
-
 ---
 
-## Auth State Listener
+## Receiving Auth in a Child PWA
 
-Registered once during `_doFirebaseInit()`:
+Add this listener in your child PWA's JavaScript (before any auth-dependent logic):
 
-```js
-_firebaseAuth.onAuthStateChanged(user => {
-  _currentUser = user;
-  if (user) {
-    // Authenticated
-    firestoreDoc = firebase.firestore().collection('kanban-boards').doc('shared');
-    scrumboardConnected = true;
-    showApp();
-    updateSidebarUser();
-    if (DB.scrumboardSync.autoSync) startRealtimeListener();
+```javascript
+// --- SSO Auth Receiver ---
+let currentUser = null;
+let isAdmin = false;
+
+window.addEventListener('message', (event) => {
+  const data = event.data;
+  if (!data || data.type !== 'admin-auth') return;
+
+  isAdmin = !!data.isAdmin;
+
+  if (data.sso) {
+    currentUser = {
+      uid: data.sso.uid,
+      email: data.sso.email,
+      displayName: data.sso.displayName,
+      photoURL: data.sso.photoURL,
+      idToken: data.sso.idToken,
+    };
+    onUserSignedIn(currentUser);
   } else {
-    // Signed out
-    firestoreDoc = null;
-    scrumboardConnected = false;
-    stopRealtimeListener();
-    updateSidebarUser();
+    currentUser = null;
+    onUserSignedOut();
   }
 });
-```
 
-**When authenticated:**
-- `_currentUser` is set (Google user object with `email`, `displayName`, `photoURL`, `uid`)
-- Firestore references are initialized (`kanban-boards/shared`)
-- The main app shell is displayed
-- Sidebar shows user avatar/name + settings gear + sign-out button
-- Real-time listener starts if `autoSync` is enabled
+function onUserSignedIn(user) {
+  // Update UI: show user avatar, enable user-specific features
+  console.log('User signed in:', user.displayName, user.email);
+}
 
-**When unauthenticated:**
-- All Firestore references are cleared
-- Real-time listener is stopped
-- Sidebar shows "Not signed in" with a sign-in button
-
----
-
-## Global State Variables
-
-```js
-const FIREBASE_CONFIG_KEY = 'forgeERP_firebaseConfig';
-let _firebaseAuth = null;     // firebase.auth() instance
-let _currentUser = null;      // Current Google user object (or null)
-let firestoreDoc = null;      // Firestore DocumentReference for kanban-boards/shared
-let scrumboardListener = null; // Firestore onSnapshot unsubscribe function
-let scrumboardConnected = false;
-```
-
----
-
-## Sign-Out
-
-Two code paths:
-
-| Function | Behavior |
-|----------|----------|
-| `logoutAndReset()` | Signs out, clears all auth state, returns to the login screen. Used by the sidebar sign-out button. |
-| `signOutFirebase()` | Signs out and clears auth state but stays on the current screen. Used internally. |
-
-```js
-async function logoutAndReset() {
-  stopRealtimeListener();
-  await _firebaseAuth.signOut();
-  _currentUser = null;
-  firestoreDoc = null;
-  scrumboardConnected = false;
-  _firebaseAuth = null;
-  showLoginScreen();
+function onUserSignedOut() {
+  // Update UI: hide user-specific features
+  console.log('User signed out');
 }
 ```
 
 ---
 
-## Firestore Security Rules
+## Using the ID Token with Firebase (Firestore)
 
-Defined in `firestore.rules`. Deploy with:
+If your child PWA has its own Firebase Firestore instance (sharing the same Firebase project), you can use `signInWithCustomToken` or, more simply, pass the ID token to your backend. For direct Firestore access from the child PWA using the **same Firebase project**:
 
-```bash
-firebase deploy --only firestore:rules
-```
+```html
+<!-- Load Firebase SDKs (same version as parent) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
-### Rule Summary
+<script>
+  // Initialize with the SAME Firebase config as the parent
+  const firebaseApp = firebase.initializeApp({
+    apiKey: "AIzaSyAqRWVgti-CuXzr5AkhDKmPlu7iA2MQpUg",
+    authDomain: "arnout-s-homelab.firebaseapp.com",
+    projectId: "arnout-s-homelab",
+    storageBucket: "arnout-s-homelab.firebasestorage.app",
+    messagingSenderId: "258011834485",
+    appId: "1:258011834485:web:5afb1efaa303b4dd93f03c",
+  });
+  const db = firebaseApp.firestore();
+  const auth = firebaseApp.auth();
 
-| Collection | Read | Write | Create/Delete |
-|-----------|------|-------|---------------|
-| `kanban-boards/{boardId}` | Authenticated | Authenticated + must have `projects` key + < 1 MB | Admin only (`admin@forgeerp.nl`) |
-| `retro-presence/{docId}` | Authenticated | Own doc only (`auth.uid == docId`) | — |
-| `retro-nicknames/{docId}` | Authenticated | Authenticated | — |
-| `lab-inventory/{docId}` | (no explicit rule — denied by default) | — | — |
-| Everything else | Denied | Denied | Denied |
+  // Listen for SSO credentials from parent
+  window.addEventListener('message', async (event) => {
+    const data = event.data;
+    if (!data || data.type !== 'admin-auth') return;
 
-> **Note:** `lab-inventory` currently has no explicit rule in `firestore.rules`. Inventory sync operations will fail unless you add an allow rule. Example:
-> ```
-> match /lab-inventory/{docId} {
->   allow read, write: if request.auth != null;
-> }
-> ```
-
----
-
-## Authenticated User in the UI
-
-When signed in, the sidebar bottom section renders:
-
-```
-┌──────────────────────────────────────┐
-│  [avatar]  Display Name       ⚙  ⎋  │
-│            user@email.com            │
-└──────────────────────────────────────┘
-```
-
-- **Avatar**: Google profile photo, or generated initials on a green badge
-- **⚙ (settings gear)**: Opens the Power User Settings panel (project deletion, DB export/import, factory reset, etc.)
-- **⎋ (sign-out)**: Calls `logoutAndReset()`
-
-When **not** signed in:
-
-```
-┌──────────────────────────────────────┐
-│  [?]  Not signed in             ⎆   │
-│       Sync disabled                  │
-└──────────────────────────────────────┘
+    if (data.sso && data.sso.idToken) {
+      // The child PWA shares the same Firebase project, so the user's
+      // auth state will automatically be available if the parent and child
+      // share the same auth domain. However, since iframes are on different
+      // origins (github.io subpaths), we use signInWithCredential:
+      try {
+        const credential = firebase.auth.GoogleAuthProvider.credential(data.sso.idToken);
+        await auth.signInWithCredential(credential);
+        console.log('Signed in via parent SSO');
+      } catch (err) {
+        console.warn('SSO sign-in failed, using token for display only:', err.message);
+      }
+    } else {
+      // User signed out
+      try { await auth.signOut(); } catch {}
+    }
+  });
+</script>
 ```
 
 ---
 
-## Power User Settings (Auth-Gated)
+## Storing Per-User Data in Firestore
 
-The settings panel is only accessible when `_currentUser` is set. It provides:
+The Firestore rules support per-user data under `/users/{userId}/app_data/`:
 
-| Action | Description |
-|--------|-------------|
-| Delete Project | Remove a project + its BOM entries + sync mappings from the local DB |
-| Delete Inventory Item | Remove a single item from local inventory |
-| Purge Firestore Inventory | Batch-delete all docs in `/lab-inventory` on Firestore |
-| Export DB | Download full local DB as timestamped JSON |
-| Import DB | Upload a JSON file to overwrite local data |
-| Reset Firebase Config | Clear stored credentials + sign out |
-| Factory Reset | Wipe all `localStorage` (DB + config) and reload |
+```javascript
+// Save user preferences (only the authenticated user can read/write their own data)
+async function saveUserData(key, value) {
+  if (!currentUser) return;
+  await db.collection('users').doc(currentUser.uid)
+    .collection('app_data').doc(key)
+    .set(value, { merge: true });
+}
 
----
-
-## Firebase Config Reference
-
-See `firebase-config.example.js` (not loaded by the app):
-
-```js
-const FIREBASE_CONFIG = {
-  apiKey:            '',                          // Required
-  authDomain:        '<project>.firebaseapp.com',
-  projectId:         '<project>',                 // Required
-  storageBucket:     '<project>.appspot.com',
-  messagingSenderId: '',
-  appId:             ''
-};
+// Load user data
+async function loadUserData(key) {
+  if (!currentUser) return null;
+  const doc = await db.collection('users').doc(currentUser.uid)
+    .collection('app_data').doc(key).get();
+  return doc.exists ? doc.data() : null;
+}
 ```
 
-Obtain these values from:
-**Firebase Console** → Project Settings → General → Your apps
+---
+
+## Showing User Info in the UI
+
+```javascript
+function onUserSignedIn(user) {
+  // Example: show avatar + name in a header bar
+  const header = document.getElementById('user-info');
+  if (header) {
+    header.innerHTML = `
+      <img src="${user.photoURL}" alt=""
+           style="width:28px;height:28px;border-radius:50%;border:1px solid #f59e0b80;">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#a1a1aa;">
+        ${user.displayName || user.email}
+      </span>
+    `;
+  }
+}
+```
 
 ---
 
-## Key Files
+## Security Notes
 
-| File | Purpose |
-|------|---------|
-| `index.html` | All auth logic (login screen HTML + JS functions) |
-| `firebase-config.example.js` | Reference config template (not loaded by the app) |
-| `firestore.rules` | Firestore security rules |
+1. **Never trust `isAdmin` blindly** on the client side. Use it for UI toggling only. Sensitive operations should verify the ID token server-side.
+2. **ID tokens expire** after ~1 hour. The parent refreshes and re-sends tokens automatically when the iframe loads or auth state changes.
+3. The `key` field (admin password) is provided for **backward compatibility** with apps that used the old password-based auth. New apps should use the `sso` object instead.
+4. Always validate the `event.origin` in production if you want to restrict which parent can send auth messages.
+
+---
+
+## Quick Checklist for Adding SSO to a Child PWA
+
+- [ ] Add `window.addEventListener('message', ...)` listener for `admin-auth` messages
+- [ ] Extract `sso` object for user identity (uid, email, displayName, photoURL)
+- [ ] Use `idToken` if you need authenticated Firestore access
+- [ ] Update UI to show/hide user-specific features based on auth state
+- [ ] Store per-user data under `/users/{uid}/app_data/` in Firestore
+- [ ] Test sign-in and sign-out flows by toggling auth in the parent portfolio
