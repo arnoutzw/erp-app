@@ -15,7 +15,9 @@
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
 <script>
 tailwind.config = {
   theme: {
@@ -423,21 +425,28 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
         </div>
       </div>
 
-      <!-- Sync Controls -->
-      <div class="flex items-center justify-between mb-6">
-        <div class="flex items-center gap-3">
-          <button onclick="performFullSync()" id="syncNowBtn" class="bg-amber-500 hover:bg-amber-400 text-zinc-900 font-mono font-bold px-4 py-2.5 rounded-lg transition-colors flex items-center gap-2">
-            <i data-lucide="refresh-cw" class="w-4 h-4"></i> Sync Now
-          </button>
-          <label class="flex items-center gap-2 text-xs font-mono text-zinc-400 cursor-pointer">
-            <input type="checkbox" id="autoSyncToggle" class="accent-amber-500" onchange="toggleAutoSync()"> Real-time listener
-          </label>
+      <!-- Auth & Sync Controls -->
+      <div id="syncAuthBar" class="bg-zinc-900 border border-zinc-700 rounded-lg p-4 mb-6 flex items-center justify-between">
+        <div id="syncAuthState" class="flex items-center gap-3">
+          <!-- Populated by renderScrumboardSync() -->
         </div>
         <div class="flex items-center gap-2">
           <span class="text-xs font-mono text-zinc-500" id="syncStatusText">Ready</span>
           <div id="syncSpinner" class="hidden">
             <svg class="animate-spin w-4 h-4 text-amber-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
           </div>
+        </div>
+      </div>
+
+      <!-- Sync Controls -->
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3">
+          <button onclick="performFullSync()" id="syncNowBtn" class="bg-amber-500 hover:bg-amber-400 text-zinc-900 font-mono font-bold px-4 py-2.5 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i> Sync Now
+          </button>
+          <label class="flex items-center gap-2 text-xs font-mono text-zinc-400 cursor-pointer">
+            <input type="checkbox" id="autoSyncToggle" class="accent-amber-500" onchange="toggleAutoSync()"> Real-time listener
+          </label>
         </div>
       </div>
 
@@ -1458,32 +1467,99 @@ let firestoreDoc = null;
 let scrumboardListener = null;
 let scrumboardConnected = false;
 let _lastScrumboardState = null;
+let _firebaseAuth = null;
+let _currentUser = null;
 
-const FIREBASE_CONFIG = {
-  apiKey: 'AIzaSyBxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-  authDomain: 'arnout-s-homelab.firebaseapp.com',
-  projectId: 'arnout-s-homelab',
-  storageBucket: 'arnout-s-homelab.appspot.com',
-  messagingSenderId: '000000000000',
-  appId: '1:000000000000:web:xxxxxxxxxxxxxxxxxx'
-};
+function isFirebaseConfigured() {
+  return typeof FIREBASE_CONFIG !== 'undefined' &&
+    FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey.length > 5 &&
+    FIREBASE_CONFIG.projectId;
+}
 
 function initFirebase() {
+  if (!isFirebaseConfigured()) {
+    scrumboardConnected = false;
+    addSyncLog('warn', 'Firebase not configured — copy firebase-config.example.js → firebase-config.js and add your credentials');
+    return;
+  }
+
   try {
     if (!firebase.apps.length) {
       firebase.initializeApp(FIREBASE_CONFIG);
     }
-    const db = firebase.firestore();
-    firestoreDoc = db.collection('kanban-boards').doc('shared');
-    scrumboardConnected = true;
-    addSyncLog('info', 'Firebase initialized — connected to kanban-boards/shared');
-    if (DB.scrumboardSync.autoSync) {
-      startRealtimeListener();
-    }
+    _firebaseAuth = firebase.auth();
+
+    // Listen for auth state changes
+    _firebaseAuth.onAuthStateChanged(user => {
+      _currentUser = user;
+      if (user) {
+        const db = firebase.firestore();
+        firestoreDoc = db.collection('kanban-boards').doc('shared');
+        scrumboardConnected = true;
+        addSyncLog('info', 'Authenticated as ' + sanitizeText(user.email || user.uid));
+        if (DB.scrumboardSync.autoSync) {
+          startRealtimeListener();
+        }
+      } else {
+        firestoreDoc = null;
+        scrumboardConnected = false;
+        stopRealtimeListener();
+        addSyncLog('info', 'Signed out — Firestore disconnected');
+      }
+      if (currentTab === 'scrumboard') renderScrumboardSync();
+    });
   } catch (err) {
     scrumboardConnected = false;
     addSyncLog('error', 'Firebase init failed: ' + err.message);
   }
+}
+
+async function signInWithGoogle() {
+  if (!_firebaseAuth) {
+    addSyncLog('error', 'Firebase not initialized — check firebase-config.js');
+    return;
+  }
+  try {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    await _firebaseAuth.signInWithPopup(provider);
+  } catch (err) {
+    if (err.code !== 'auth/popup-closed-by-user') {
+      addSyncLog('error', 'Sign-in failed: ' + err.message);
+    }
+  }
+}
+
+async function signOutFirebase() {
+  if (!_firebaseAuth) return;
+  try {
+    stopRealtimeListener();
+    await _firebaseAuth.signOut();
+    _currentUser = null;
+    firestoreDoc = null;
+    scrumboardConnected = false;
+    addSyncLog('info', 'Signed out');
+  } catch (err) {
+    addSyncLog('error', 'Sign-out failed: ' + err.message);
+  }
+  if (currentTab === 'scrumboard') renderScrumboardSync();
+}
+
+function sanitizeText(str) {
+  if (typeof str !== 'string') return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function validateScrumboardState(data) {
+  if (!data || typeof data !== 'object') return false;
+  if (!Array.isArray(data.projects)) return false;
+  for (const project of data.projects) {
+    if (typeof project.id !== 'string' || typeof project.name !== 'string') return false;
+    if (project.cards && !Array.isArray(project.cards)) return false;
+    if (project.columns && !Array.isArray(project.columns)) return false;
+  }
+  return true;
 }
 
 function addSyncLog(type, message) {
@@ -1549,29 +1625,39 @@ function findMappingByERPId(erpId) {
   return DB.scrumboardSync.mappings.find(m => m.erpProjectId === erpId);
 }
 
+// Coerce Firestore values to safe types — prevents type confusion from untrusted data
+function safeStr(val, maxLen) {
+  if (typeof val !== 'string') return '';
+  return maxLen ? val.slice(0, maxLen) : val.slice(0, 1000);
+}
+function safeArr(val) { return Array.isArray(val) ? val : []; }
+function safeNum(val) { const n = Number(val); return Number.isFinite(n) ? n : 0; }
+
 function syncFromScrumboard(scrumboardState) {
   const backlogCards = extractBacklogCards(scrumboardState);
   let created = 0;
   let updated = 0;
 
   backlogCards.forEach(card => {
+    if (typeof card.id !== 'string') return; // skip invalid cards
+
     const existing = findMappingByCardId(card.id);
 
     if (existing) {
       const erpProject = DB.projects.find(p => p.id === existing.erpProjectId);
       if (erpProject) {
-        const cardModified = card.createdAt || 0;
+        const cardModified = safeNum(card.createdAt);
         const lastSync = existing.lastSyncAt || 0;
 
         if (cardModified > lastSync) {
-          erpProject.name = card.title || erpProject.name;
-          erpProject.description = card.description || erpProject.description;
-          erpProject.priority = mapCardPriorityToERP(card.priority);
-          if (card.dueDate) erpProject.deadline = card.dueDate;
-          if (card.assignee) erpProject.lead = card.assignee;
+          erpProject.name = safeStr(card.title, 200) || erpProject.name;
+          erpProject.description = safeStr(card.description, 5000) || erpProject.description;
+          erpProject.priority = mapCardPriorityToERP(safeStr(card.priority, 20));
+          if (card.dueDate) erpProject.deadline = safeStr(card.dueDate, 10);
+          if (card.assignee) erpProject.lead = safeStr(card.assignee, 100);
           if (card.storyPoints) erpProject.scrumboardStoryPoints = card.storyPoints;
-          erpProject.scrumboardLabels = card.labels || [];
-          erpProject.scrumboardType = card.type || '';
+          erpProject.scrumboardLabels = safeArr(card.labels);
+          erpProject.scrumboardType = safeStr(card.type, 20);
           erpProject.syncedAt = Date.now();
           existing.lastSyncAt = Date.now();
           updated++;
@@ -1580,29 +1666,29 @@ function syncFromScrumboard(scrumboardState) {
     } else {
       const newProject = {
         id: nextId(DB.projects, 'PRJ'),
-        name: card.title || 'Untitled Card',
-        client: card._scrumboardProjectName || '',
+        name: safeStr(card.title, 200) || 'Untitled Card',
+        client: safeStr(card._scrumboardProjectName, 200),
         status: 'planning',
-        priority: mapCardPriorityToERP(card.priority),
-        lead: card.assignee || '',
+        priority: mapCardPriorityToERP(safeStr(card.priority, 20)),
+        lead: safeStr(card.assignee, 100),
         startDate: new Date().toISOString().split('T')[0],
-        deadline: card.dueDate || '',
+        deadline: safeStr(card.dueDate, 10),
         progress: 0,
-        description: card.description || '',
+        description: safeStr(card.description, 5000),
         budget: 0,
         // ERP-specific fields created during sync
         syncSource: 'scrumboard',
         syncedAt: Date.now(),
-        scrumboardProjectId: card._scrumboardProjectId,
-        scrumboardCardId: card.id,
-        scrumboardProjectName: card._scrumboardProjectName,
+        scrumboardProjectId: safeStr(card._scrumboardProjectId, 100),
+        scrumboardCardId: safeStr(card.id, 100),
+        scrumboardProjectName: safeStr(card._scrumboardProjectName, 200),
         scrumboardStoryPoints: card.storyPoints || '',
-        scrumboardLabels: card.labels || [],
-        scrumboardType: card.type || '',
-        scrumboardMaterials: card.materials || '',
-        scrumboardEstimatedTime: card.estimatedTime || '',
-        scrumboardSubtasks: card.subtasks || [],
-        scrumboardDependencies: card.dependencies || [],
+        scrumboardLabels: safeArr(card.labels),
+        scrumboardType: safeStr(card.type, 20),
+        scrumboardMaterials: safeStr(card.materials, 2000),
+        scrumboardEstimatedTime: safeStr(card.estimatedTime, 50),
+        scrumboardSubtasks: safeArr(card.subtasks),
+        scrumboardDependencies: safeArr(card.dependencies),
         erpBudget: 0,
         erpCostCenter: '',
         erpApprovalStatus: 'pending',
@@ -1615,10 +1701,10 @@ function syncFromScrumboard(scrumboardState) {
 
       DB.scrumboardSync.mappings.push({
         erpProjectId: newProject.id,
-        scrumboardProjectId: card._scrumboardProjectId,
-        scrumboardCardId: card.id,
-        scrumboardProjectName: card._scrumboardProjectName,
-        cardTitle: card.title,
+        scrumboardProjectId: safeStr(card._scrumboardProjectId, 100),
+        scrumboardCardId: safeStr(card.id, 100),
+        scrumboardProjectName: safeStr(card._scrumboardProjectName, 200),
+        cardTitle: safeStr(card.title, 200),
         lastSyncAt: Date.now(),
         createdAt: Date.now()
       });
@@ -1682,6 +1768,11 @@ function syncToScrumboard(scrumboardState) {
 }
 
 async function performFullSync() {
+  if (!_currentUser) {
+    addSyncLog('error', 'Not authenticated — sign in before syncing');
+    if (currentTab === 'scrumboard') renderScrumboardSync();
+    return;
+  }
   if (!firestoreDoc) {
     addSyncLog('error', 'Firebase not initialized — cannot sync');
     if (currentTab === 'scrumboard') renderScrumboardSync();
@@ -1696,7 +1787,7 @@ async function performFullSync() {
   if (syncBtn) syncBtn.disabled = true;
 
   try {
-    addSyncLog('info', 'Starting 2-way sync...');
+    addSyncLog('info', 'Starting 2-way sync as ' + sanitizeText(_currentUser.email || _currentUser.uid) + '...');
 
     // Step 1: Fetch current scrumboard state from Firestore
     const doc = await firestoreDoc.get();
@@ -1706,6 +1797,13 @@ async function performFullSync() {
     }
 
     const scrumboardState = doc.data();
+
+    // Validate inbound data structure
+    if (!validateScrumboardState(scrumboardState)) {
+      addSyncLog('error', 'Rejected: Firestore data failed schema validation');
+      return;
+    }
+
     _lastScrumboardState = scrumboardState;
 
     // Step 2: Pull — Sync backlog cards from scrumboard into ERP
@@ -1716,10 +1814,12 @@ async function performFullSync() {
     const pushResult = syncToScrumboard(scrumboardState);
     addSyncLog('info', `Push: ${pushResult.pushed} cards updated with ERP fields`);
 
-    // Step 4: Write updated state back to Firestore
+    // Step 4: Write only the projects array back (scoped update, not full .set())
     if (pushResult.pushed > 0) {
-      await firestoreDoc.set(JSON.parse(JSON.stringify(scrumboardState)));
-      addSyncLog('info', 'Firestore document updated with ERP fields');
+      await firestoreDoc.update({
+        projects: JSON.parse(JSON.stringify(scrumboardState.projects))
+      });
+      addSyncLog('info', 'Firestore updated (scoped to projects field only)');
     }
 
     // Update sync metadata
@@ -1749,8 +1849,13 @@ function startRealtimeListener() {
   scrumboardListener = firestoreDoc.onSnapshot(doc => {
     if (doc.exists && !doc.metadata.hasPendingWrites) {
       const scrumboardState = doc.data();
-      _lastScrumboardState = scrumboardState;
 
+      if (!validateScrumboardState(scrumboardState)) {
+        addSyncLog('error', 'Realtime: rejected snapshot — failed schema validation');
+        return;
+      }
+
+      _lastScrumboardState = scrumboardState;
       const pullResult = syncFromScrumboard(scrumboardState);
 
       if (pullResult.created > 0 || pullResult.updated > 0) {
@@ -1836,14 +1941,61 @@ function formatSyncTime(ts) {
 }
 
 function renderScrumboardSync() {
+  const isConfigured = isFirebaseConfigured();
+  const isAuthed = !!_currentUser;
+
+  // Auth bar
+  const authEl = document.getElementById('syncAuthState');
+  if (!isConfigured) {
+    authEl.innerHTML = `
+      <div class="flex items-center gap-2">
+        <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400"></i>
+        <span class="text-xs font-mono text-amber-400">Firebase not configured — copy <code class="bg-zinc-800 px-1 rounded">firebase-config.example.js</code> → <code class="bg-zinc-800 px-1 rounded">firebase-config.js</code> and add your credentials</span>
+      </div>
+    `;
+  } else if (!isAuthed) {
+    authEl.innerHTML = `
+      <div class="flex items-center gap-3">
+        <i data-lucide="shield-alert" class="w-4 h-4 text-zinc-500"></i>
+        <span class="text-xs font-mono text-zinc-400">Sign in to enable sync</span>
+        <button onclick="signInWithGoogle()" class="bg-zinc-700 hover:bg-zinc-600 text-zinc-100 text-xs font-mono px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2">
+          <svg class="w-4 h-4" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+          Sign in with Google
+        </button>
+      </div>
+    `;
+  } else {
+    const email = sanitizeText(_currentUser.email || _currentUser.uid);
+    const photo = _currentUser.photoURL ? `<img src="${sanitizeText(_currentUser.photoURL)}" class="w-6 h-6 rounded-full" referrerpolicy="no-referrer" alt="">` : `<div class="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center text-green-400 font-mono text-[10px] font-bold">${email[0].toUpperCase()}</div>`;
+    authEl.innerHTML = `
+      <div class="flex items-center gap-3">
+        <i data-lucide="shield-check" class="w-4 h-4 text-green-400"></i>
+        ${photo}
+        <span class="text-xs font-mono text-zinc-300">${email}</span>
+        <button onclick="signOutFirebase()" class="text-xs font-mono text-zinc-500 hover:text-red-400 transition-colors px-2 py-1 rounded hover:bg-zinc-800">Sign out</button>
+      </div>
+    `;
+  }
+
+  // Disable sync controls if not authenticated
+  const syncBtn = document.getElementById('syncNowBtn');
+  const autoToggle = document.getElementById('autoSyncToggle');
+  if (syncBtn) syncBtn.disabled = !isAuthed;
+  if (autoToggle) autoToggle.disabled = !isAuthed;
+
   // Connection status
   const connEl = document.getElementById('syncConnectionStatus');
   const connIcon = document.getElementById('syncConnectionIcon');
-  if (scrumboardConnected) {
+  if (isAuthed && scrumboardConnected) {
     connEl.textContent = 'Connected';
     connEl.className = 'font-mono font-bold text-lg text-green-400';
-    connIcon.innerHTML = '<i data-lucide="wifi" class="w-3.5 h-3.5 text-green-400"></i>';
+    connIcon.innerHTML = '<i data-lucide="shield-check" class="w-3.5 h-3.5 text-green-400"></i>';
     connIcon.className = 'w-7 h-7 bg-green-500/10 rounded-lg flex items-center justify-center';
+  } else if (isConfigured && !isAuthed) {
+    connEl.textContent = 'Not signed in';
+    connEl.className = 'font-mono font-bold text-lg text-amber-400';
+    connIcon.innerHTML = '<i data-lucide="shield-alert" class="w-3.5 h-3.5 text-amber-400"></i>';
+    connIcon.className = 'w-7 h-7 bg-amber-500/10 rounded-lg flex items-center justify-center';
   } else {
     connEl.textContent = 'Disconnected';
     connEl.className = 'font-mono font-bold text-lg text-zinc-500';
@@ -1864,12 +2016,12 @@ function renderScrumboardSync() {
   // Auto-sync toggle
   document.getElementById('autoSyncToggle').checked = DB.scrumboardSync.autoSync;
 
-  // Mappings table
+  // Mappings table — all Firestore-sourced strings are sanitized
   const mappings = DB.scrumboardSync.mappings;
   const tableEl = document.getElementById('syncMappingsTable');
 
   if (mappings.length === 0) {
-    tableEl.innerHTML = '<div class="text-center text-zinc-500 font-mono py-8 text-xs">No synced items yet. Click "Sync Now" to pull backlog cards from the scrumboard.</div>';
+    tableEl.innerHTML = '<div class="text-center text-zinc-500 font-mono py-8 text-xs">' + (isAuthed ? 'No synced items yet. Click "Sync Now" to pull backlog cards from the scrumboard.' : 'Sign in to start syncing backlog cards.') + '</div>';
   } else {
     tableEl.innerHTML = `
       <table class="w-full text-xs">
@@ -1887,13 +2039,13 @@ function renderScrumboardSync() {
           const erpStatus = erp ? erp.status : 'unknown';
           const hasErpFields = erp && erp.syncSource === 'scrumboard';
           return `<tr class="border-t border-zinc-800 hover:bg-zinc-800/50">
-            <td class="px-4 py-3"><span class="font-mono text-amber-400">${m.erpProjectId}</span><div class="text-zinc-400 mt-0.5 truncate max-w-[180px]">${erp ? erp.name : 'Deleted'}</div></td>
-            <td class="px-4 py-3 font-mono text-zinc-300 truncate max-w-[160px]">${m.cardTitle || m.scrumboardCardId}</td>
-            <td class="px-4 py-3 text-zinc-500 truncate max-w-[120px]">${m.scrumboardProjectName || '—'}</td>
+            <td class="px-4 py-3"><span class="font-mono text-amber-400">${sanitizeText(m.erpProjectId)}</span><div class="text-zinc-400 mt-0.5 truncate max-w-[180px]">${erp ? sanitizeText(erp.name) : 'Deleted'}</div></td>
+            <td class="px-4 py-3 font-mono text-zinc-300 truncate max-w-[160px]">${sanitizeText(m.cardTitle || m.scrumboardCardId)}</td>
+            <td class="px-4 py-3 text-zinc-500 truncate max-w-[120px]">${sanitizeText(m.scrumboardProjectName || '—')}</td>
             <td class="px-4 py-3"><span class="text-xs px-2 py-0.5 rounded font-mono ${statusColor(erpStatus)}">${statusLabel(erpStatus)}</span></td>
             <td class="px-4 py-3">${hasErpFields ? '<span class="text-xs px-2 py-0.5 rounded font-mono bg-green-500/20 text-green-400">Active</span>' : '<span class="text-xs px-2 py-0.5 rounded font-mono bg-zinc-600 text-zinc-400">None</span>'}</td>
             <td class="px-4 py-3 text-center font-mono text-zinc-500">${formatSyncTime(m.lastSyncAt)}</td>
-            <td class="px-4 py-3"><button class="text-zinc-600 hover:text-red-400 transition-colors" onclick="unlinkMapping('${m.scrumboardCardId}')"><i data-lucide="unlink" class="w-3.5 h-3.5"></i></button></td>
+            <td class="px-4 py-3"><button class="text-zinc-600 hover:text-red-400 transition-colors" onclick="unlinkMapping('${sanitizeText(m.scrumboardCardId)}')"><i data-lucide="unlink" class="w-3.5 h-3.5"></i></button></td>
           </tr>`;
         }).join('')}</tbody>
       </table>
@@ -1911,7 +2063,7 @@ function renderScrumboardSync() {
     logEl.innerHTML = logs.map(l => `
       <div class="flex items-start gap-2 px-2 py-1 rounded hover:bg-zinc-800/50 text-[11px]">
         <i data-lucide="${lucideMap[l.type] || 'info'}" class="w-3 h-3 ${iconMap[l.type] || 'text-zinc-500'} mt-0.5 flex-shrink-0"></i>
-        <span class="text-zinc-400 flex-1">${l.message}</span>
+        <span class="text-zinc-400 flex-1">${sanitizeText(l.message)}</span>
         <span class="text-zinc-600 font-mono flex-shrink-0">${formatSyncTime(l.timestamp)}</span>
       </div>
     `).join('');
