@@ -74,6 +74,9 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-2.5 text-zinc-400 transition-colors cursor-pointer" data-tab="bom">
       <i data-lucide="list-tree" class="w-4 h-4"></i> Bill of Materials
     </a>
+    <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-2.5 text-zinc-400 transition-colors cursor-pointer" data-tab="scrum">
+      <i data-lucide="kanban" class="w-4 h-4"></i> Scrum Board
+    </a>
     <div class="px-3 py-2 mt-2 text-[10px] font-mono text-zinc-600 uppercase tracking-wider">Supply Chain</div>
     <a href="#" class="sidebar-link flex items-center gap-3 px-4 py-2.5 text-zinc-400 transition-colors cursor-pointer" data-tab="inventory">
       <i data-lucide="warehouse" class="w-4 h-4"></i> Inventory
@@ -379,6 +382,34 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       <div id="contactsList" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
     </div>
 
+    <!-- SCRUM BOARD -->
+    <div id="tab-scrum" class="tab-content fade-in">
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3">
+          <select id="scrumSprintFilter" class="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 font-mono text-sm text-zinc-100 focus:border-amber-500 focus:outline-none" onchange="renderScrumBoard()">
+            <option value="all">All Sprints</option>
+          </select>
+          <select id="scrumPhaseFilter" class="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 font-mono text-sm text-zinc-100 focus:border-amber-500 focus:outline-none" onchange="renderScrumBoard()">
+            <option value="all">All Phases</option>
+            <option value="Phase 1">Phase 1 — MVP</option>
+            <option value="Phase 2">Phase 2 — Vision</option>
+          </select>
+        </div>
+        <div class="flex items-center gap-3">
+          <span id="scrumSyncStatus" class="text-xs font-mono text-zinc-500"></span>
+          <button onclick="syncScrumFromGitHub()" class="bg-amber-500 hover:bg-amber-400 text-zinc-900 font-mono font-bold px-4 py-2.5 rounded-lg transition-colors flex items-center gap-2">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i> Sync from GitHub
+          </button>
+        </div>
+      </div>
+      <!-- Scrum KPIs -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6" id="scrumKpis"></div>
+      <!-- Scrum linked project info -->
+      <div id="scrumLinkedProject" class="mb-6"></div>
+      <!-- Sprint columns -->
+      <div id="scrumBoardContent" class="space-y-6"></div>
+    </div>
+
   </div>
 </main>
 </div>
@@ -523,7 +554,10 @@ const DB = {
     { id: 'SUP-003', type: 'supplier', name: 'PCBWay', contact: 'Sales Team', email: 'sales@pcbway.com', phone: '+86 755-2349-1090', address: 'Shenzhen, China', notes: 'PCB fabrication and assembly. 5-day lead time for protos.', revenue: 0 },
     { id: 'SUP-004', type: 'supplier', name: 'MetalWorks Supply', contact: 'Beth Harmon', email: 'beth@metalworkssupply.com', phone: '+1 (503) 555-0123', address: 'Portland, OR', notes: 'Raw materials: aluminum, steel, gaskets, sealing materials.', revenue: 0 },
     { id: 'SUP-005', type: 'supplier', name: 'PrintSupply Co', contact: 'Online Store', email: 'support@printsupply.co', phone: '+1 (800) 555-0199', address: 'Chicago, IL', notes: '3D printing filaments and accessories. Bulk discount available.', revenue: 0 },
-  ]
+  ],
+  scrumData: null,
+  scrumSyncedAt: null,
+  scrumLinkedProjectId: 'PRJ-003'
 };
 
 // Save/Load from localStorage
@@ -532,7 +566,7 @@ function loadDB() {
   const saved = localStorage.getItem('forgeERP');
   if (saved) {
     const parsed = JSON.parse(saved);
-    Object.keys(parsed).forEach(k => { if (DB[k]) DB[k] = parsed[k]; });
+    Object.keys(parsed).forEach(k => { if (k in DB) DB[k] = parsed[k]; });
   }
 }
 
@@ -573,7 +607,7 @@ function switchTab(tab) {
   document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
-  const titles = { dashboard: 'Dashboard', projects: 'Projects', bom: 'Bill of Materials', inventory: 'Inventory', procurement: 'Procurement', manufacturing: 'Manufacturing', quotes: 'Quotes & Orders', invoices: 'Invoices', contacts: 'Contacts' };
+  const titles = { dashboard: 'Dashboard', projects: 'Projects', bom: 'Bill of Materials', inventory: 'Inventory', procurement: 'Procurement', manufacturing: 'Manufacturing', quotes: 'Quotes & Orders', invoices: 'Invoices', contacts: 'Contacts', scrum: 'Scrum Board' };
   document.getElementById('pageTitle').textContent = titles[tab] || tab;
   renderTab(tab);
 }
@@ -589,6 +623,7 @@ function renderTab(tab) {
     case 'quotes': renderQuotesOrders(); break;
     case 'invoices': renderInvoices(); break;
     case 'contacts': renderContacts(); break;
+    case 'scrum': renderScrumBoard(); break;
   }
 }
 
@@ -727,7 +762,10 @@ function renderProjects() {
         <span>→</span>
         <span>${formatDate(p.deadline)}</span>
       </div>
-      <div class="mt-2 text-xs font-mono text-amber-500/70">${formatCurrency(p.budget)} budget</div>
+      <div class="flex items-center justify-between mt-2">
+        <span class="text-xs font-mono text-amber-500/70">${formatCurrency(p.budget)} budget</span>
+        ${p.id === DB.scrumLinkedProjectId && DB.scrumData ? '<span class="text-[10px] px-1.5 py-0.5 rounded font-mono bg-blue-500/20 text-blue-400">Scrum Linked</span>' : ''}
+      </div>
       <div class="h-0.5 bg-gradient-to-r from-amber-500 to-orange-500 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 mt-3 rounded-full origin-left"></div>
     </div>
   `).join('') : '<div class="col-span-full text-center text-zinc-500 font-mono py-12">No projects found</div>';
@@ -772,7 +810,7 @@ function showProjectDetail(id) {
       </div>
     </div>` : ''}
     ${wos.length ? `
-    <div>
+    <div class="mb-4">
       <span class="text-[10px] text-zinc-500 font-mono block mb-2">Work Orders (${wos.length})</span>
       <div class="space-y-1">
         ${wos.map(w => `<div class="flex items-center justify-between text-xs bg-zinc-800 rounded px-3 py-1.5">
@@ -780,6 +818,17 @@ function showProjectDetail(id) {
           <span class="text-zinc-400 flex-1 ml-3">${w.name}</span>
           <span class="text-xs px-2 py-0.5 rounded font-mono ${statusColor(w.status)}">${statusLabel(w.status)}</span>
         </div>`).join('')}
+      </div>
+    </div>` : ''}
+    ${id === DB.scrumLinkedProjectId && DB.scrumData ? `
+    <div>
+      <span class="text-[10px] text-zinc-500 font-mono block mb-2">Scrum Board</span>
+      <div class="bg-zinc-800 rounded p-3 flex items-center justify-between cursor-pointer hover:bg-zinc-700 transition-colors" onclick="closeDetail(); switchTab('scrum');">
+        <div class="flex items-center gap-2">
+          <i data-lucide="kanban" class="w-4 h-4 text-amber-500"></i>
+          <span class="text-sm text-zinc-200">${DB.scrumData.project.name}</span>
+        </div>
+        <div class="text-xs font-mono text-zinc-500">${getAllScrumStories(DB.scrumData).length} stories · ${(DB.scrumData.sprints || []).length} sprints</div>
       </div>
     </div>` : ''}
   `;
@@ -1521,6 +1570,275 @@ function saveModalData() {
   renderTab(currentTab);
 }
 
+// ==================== SCRUM BOARD ====================
+const SCRUM_REPO_URL = 'https://raw.githubusercontent.com/arnoutzw/scrum-app/main/6dof_robot_arm_backlog.json';
+
+async function syncScrumFromGitHub() {
+  const statusEl = document.getElementById('scrumSyncStatus');
+  statusEl.textContent = 'Syncing...';
+  statusEl.className = 'text-xs font-mono text-amber-400';
+  try {
+    const resp = await fetch(SCRUM_REPO_URL);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    DB.scrumData = data;
+    DB.scrumSyncedAt = new Date().toISOString();
+    saveDB();
+    statusEl.textContent = 'Synced ' + formatDate(DB.scrumSyncedAt.split('T')[0]);
+    statusEl.className = 'text-xs font-mono text-green-400';
+    renderScrumBoard();
+  } catch (e) {
+    statusEl.textContent = 'Sync failed: ' + e.message;
+    statusEl.className = 'text-xs font-mono text-red-400';
+  }
+}
+
+function getAllScrumStories(data) {
+  const stories = [];
+  if (!data || !data.epics) return stories;
+  data.epics.forEach(epic => {
+    (epic.features || []).forEach(feature => {
+      (feature.stories || []).forEach(story => {
+        stories.push({ ...story, epicId: epic.id, epicTitle: epic.title, featureId: feature.id, featureTitle: feature.title, phase: epic.phase });
+      });
+    });
+  });
+  return stories;
+}
+
+function renderScrumBoard() {
+  const data = DB.scrumData;
+  const statusEl = document.getElementById('scrumSyncStatus');
+  if (DB.scrumSyncedAt) {
+    statusEl.textContent = 'Synced ' + formatDate(DB.scrumSyncedAt.split('T')[0]);
+    statusEl.className = 'text-xs font-mono text-green-400';
+  }
+
+  if (!data) {
+    document.getElementById('scrumKpis').innerHTML = '';
+    document.getElementById('scrumLinkedProject').innerHTML = '';
+    document.getElementById('scrumBoardContent').innerHTML = `
+      <div class="text-center py-16">
+        <i data-lucide="kanban" class="w-12 h-12 text-zinc-600 mx-auto mb-4"></i>
+        <p class="text-zinc-500 font-mono mb-2">No scrum data loaded</p>
+        <p class="text-xs text-zinc-600 font-mono">Click "Sync from GitHub" to fetch the project backlog from<br><span class="text-amber-500/60">arnoutzw/scrum-app</span></p>
+      </div>`;
+    lucide.createIcons();
+    return;
+  }
+
+  const allStories = getAllScrumStories(data);
+  const phaseFilter = document.getElementById('scrumPhaseFilter').value;
+  const sprintFilter = document.getElementById('scrumSprintFilter').value;
+
+  // Populate sprint filter
+  const sprintSelect = document.getElementById('scrumSprintFilter');
+  const currentSprintVal = sprintSelect.value;
+  const sprints = data.sprints || [];
+  const filteredSprints = phaseFilter === 'all' ? sprints : sprints.filter(s => s.phase === phaseFilter);
+  sprintSelect.innerHTML = '<option value="all">All Sprints</option>' +
+    filteredSprints.map(s => `<option value="${s.id}" ${s.id === currentSprintVal ? 'selected' : ''}>${s.name}</option>`).join('');
+
+  // Filter stories
+  let stories = allStories;
+  if (phaseFilter !== 'all') stories = stories.filter(s => s.phase === phaseFilter);
+  if (sprintFilter !== 'all') stories = stories.filter(s => s.sprint === sprintFilter);
+
+  // KPIs
+  const totalPts = stories.reduce((s, st) => s + (st.story_points || 0), 0);
+  const mustHave = stories.filter(s => s.priority === 'must_have').length;
+  const epicCount = [...new Set(stories.map(s => s.epicId))].length;
+  document.getElementById('scrumKpis').innerHTML = `
+    <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-4">
+      <div class="text-xs text-zinc-500 font-mono mb-1">STORIES</div>
+      <div class="font-mono font-bold text-2xl text-zinc-100">${stories.length}</div>
+      <div class="text-xs text-zinc-500 font-mono mt-1">${allStories.length} total in backlog</div>
+    </div>
+    <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-4">
+      <div class="text-xs text-zinc-500 font-mono mb-1">STORY POINTS</div>
+      <div class="font-mono font-bold text-2xl text-amber-500">${totalPts}</div>
+      <div class="text-xs text-zinc-500 font-mono mt-1">${filteredSprints.length} sprints</div>
+    </div>
+    <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-4">
+      <div class="text-xs text-zinc-500 font-mono mb-1">MUST HAVE</div>
+      <div class="font-mono font-bold text-2xl text-red-400">${mustHave}</div>
+      <div class="text-xs text-zinc-500 font-mono mt-1">${stories.length - mustHave} lower priority</div>
+    </div>
+    <div class="bg-zinc-900 border border-zinc-700 rounded-lg p-4">
+      <div class="text-xs text-zinc-500 font-mono mb-1">EPICS</div>
+      <div class="font-mono font-bold text-2xl text-zinc-100">${epicCount}</div>
+      <div class="text-xs text-zinc-500 font-mono mt-1">${data.project?.name || 'Project'}</div>
+    </div>`;
+
+  // Linked ERP project
+  const linked = DB.projects.find(p => p.id === DB.scrumLinkedProjectId);
+  document.getElementById('scrumLinkedProject').innerHTML = linked ? `
+    <div class="bg-zinc-900 border border-amber-500/30 rounded-lg p-4 flex items-center justify-between cursor-pointer hover:bg-zinc-800/80 transition-colors" onclick="showProjectDetail('${linked.id}')">
+      <div class="flex items-center gap-4">
+        <div class="w-10 h-10 bg-amber-500/10 rounded-lg flex items-center justify-center"><i data-lucide="link" class="w-5 h-5 text-amber-500"></i></div>
+        <div>
+          <div class="text-xs text-zinc-500 font-mono">LINKED ERP PROJECT</div>
+          <div class="text-sm text-zinc-100 font-mono font-bold">${linked.id}: ${linked.name}</div>
+          <div class="text-xs text-zinc-500">${linked.client} · ${linked.lead} · ${formatCurrency(linked.budget)} budget</div>
+        </div>
+      </div>
+      <div class="text-right">
+        <span class="text-xs px-2 py-0.5 rounded font-mono ${statusColor(linked.status)}">${statusLabel(linked.status)}</span>
+        <div class="mt-2 w-32">
+          <div class="flex justify-between text-[10px] font-mono text-zinc-500 mb-1"><span>Progress</span><span>${linked.progress}%</span></div>
+          <div class="w-full bg-zinc-800 rounded-full h-1.5"><div class="bg-amber-500 h-1.5 rounded-full progress-bar" style="width:${linked.progress}%"></div></div>
+        </div>
+      </div>
+    </div>` : '';
+
+  // Group stories by sprint for display
+  const sprintsToShow = sprintFilter === 'all' ? filteredSprints : filteredSprints.filter(s => s.id === sprintFilter);
+
+  const priorityColor = p => {
+    const m = { must_have: 'bg-red-500/20 text-red-400', should_have: 'bg-amber-500/20 text-amber-400', could_have: 'bg-blue-500/20 text-blue-400' };
+    return m[p] || 'bg-zinc-600 text-zinc-300';
+  };
+  const priorityLabel = p => p.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+  const labelColor = (name) => {
+    const label = (data.labels || []).find(l => l.name === name);
+    return label ? label.color : '#71717a';
+  };
+
+  let html = '';
+  sprintsToShow.forEach(sprint => {
+    const sprintStories = stories.filter(s => s.sprint === sprint.id);
+    if (sprintStories.length === 0 && sprintFilter === 'all') return;
+    const sprintPts = sprintStories.reduce((s, st) => s + (st.story_points || 0), 0);
+
+    html += `
+      <div class="bg-zinc-900 border border-zinc-700 rounded-lg overflow-hidden">
+        <div class="p-4 border-b border-zinc-800 flex items-center justify-between">
+          <div>
+            <h4 class="font-mono font-bold text-zinc-100 text-sm">${sprint.name}</h4>
+            <p class="text-xs text-zinc-500 mt-0.5">${sprint.goal}</p>
+          </div>
+          <div class="text-right">
+            <span class="text-xs px-2 py-0.5 rounded font-mono bg-amber-500/10 text-amber-400">${sprintPts} pts</span>
+            <div class="text-[10px] text-zinc-500 font-mono mt-1">${sprintStories.length} stories · ${sprint.duration_weeks}w</div>
+          </div>
+        </div>
+        <div class="divide-y divide-zinc-800">
+          ${sprintStories.length ? sprintStories.map(story => `
+            <div class="p-4 hover:bg-zinc-800/50 transition-colors cursor-pointer" onclick="showScrumStoryDetail('${story.id}')">
+              <div class="flex items-start justify-between mb-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-mono text-zinc-500">${story.key}</span>
+                  <span class="text-xs px-1.5 py-0.5 rounded font-mono ${priorityColor(story.priority)}">${priorityLabel(story.priority)}</span>
+                </div>
+                <span class="text-xs font-mono text-amber-500">${story.story_points || 0} pts</span>
+              </div>
+              <h5 class="text-sm text-zinc-200 mb-1">${story.title}</h5>
+              <div class="text-xs text-zinc-500 mb-2">${story.epicTitle} &rsaquo; ${story.featureTitle}</div>
+              <div class="flex items-center gap-2 flex-wrap">
+                ${(story.labels || []).map(l => `<span class="text-[10px] px-1.5 py-0.5 rounded font-mono" style="background:${labelColor(l)}20;color:${labelColor(l)}">${l}</span>`).join('')}
+                ${story.blocked_by && story.blocked_by.length ? `<span class="text-[10px] px-1.5 py-0.5 rounded font-mono bg-red-500/20 text-red-400">blocked by ${story.blocked_by.join(', ')}</span>` : ''}
+              </div>
+            </div>
+          `).join('') : '<div class="p-4 text-center text-xs text-zinc-600 font-mono">No stories in this sprint</div>'}
+        </div>
+      </div>`;
+  });
+
+  // Stories not assigned to visible sprints
+  const unassigned = stories.filter(s => !sprintsToShow.find(sp => sp.id === s.sprint));
+  if (unassigned.length > 0) {
+    html += `
+      <div class="bg-zinc-900 border border-zinc-700 rounded-lg overflow-hidden">
+        <div class="p-4 border-b border-zinc-800">
+          <h4 class="font-mono font-bold text-zinc-500 text-sm">Unassigned / Other Sprints</h4>
+        </div>
+        <div class="divide-y divide-zinc-800">
+          ${unassigned.map(story => `
+            <div class="p-4 hover:bg-zinc-800/50 transition-colors cursor-pointer" onclick="showScrumStoryDetail('${story.id}')">
+              <div class="flex items-start justify-between mb-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-mono text-zinc-500">${story.key}</span>
+                  <span class="text-xs px-1.5 py-0.5 rounded font-mono ${priorityColor(story.priority)}">${priorityLabel(story.priority)}</span>
+                </div>
+                <span class="text-xs font-mono text-amber-500">${story.story_points || 0} pts</span>
+              </div>
+              <h5 class="text-sm text-zinc-200 mb-1">${story.title}</h5>
+              <div class="text-xs text-zinc-500">${story.epicTitle} &rsaquo; ${story.featureTitle}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>`;
+  }
+
+  if (!html) {
+    html = '<div class="text-center py-12 text-zinc-500 font-mono">No stories match the current filters</div>';
+  }
+
+  document.getElementById('scrumBoardContent').innerHTML = html;
+  lucide.createIcons();
+}
+
+function showScrumStoryDetail(storyId) {
+  const data = DB.scrumData;
+  if (!data) return;
+  const allStories = getAllScrumStories(data);
+  const story = allStories.find(s => s.id === storyId);
+  if (!story) return;
+  const sprint = (data.sprints || []).find(s => s.id === story.sprint);
+  const labelColor = (name) => {
+    const label = (data.labels || []).find(l => l.name === name);
+    return label ? label.color : '#71717a';
+  };
+  const priorityColor = p => {
+    const m = { must_have: 'bg-red-500/20 text-red-400', should_have: 'bg-amber-500/20 text-amber-400', could_have: 'bg-blue-500/20 text-blue-400' };
+    return m[p] || 'bg-zinc-600 text-zinc-300';
+  };
+  const priorityLabel = p => p.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+  document.getElementById('detailTitle').textContent = story.key + ' — ' + story.title;
+  document.getElementById('detailBody').innerHTML = `
+    <div class="grid grid-cols-2 gap-4 mb-4">
+      <div><span class="text-[10px] text-zinc-500 font-mono block">Type</span><span class="text-sm text-zinc-100">${(story.type || 'story').charAt(0).toUpperCase() + (story.type || 'story').slice(1)}</span></div>
+      <div><span class="text-[10px] text-zinc-500 font-mono block">Priority</span><span class="text-xs px-2 py-0.5 rounded font-mono ${priorityColor(story.priority)}">${priorityLabel(story.priority)}</span></div>
+      <div><span class="text-[10px] text-zinc-500 font-mono block">Story Points</span><span class="text-sm text-amber-500 font-mono">${story.story_points || 0}</span></div>
+      <div><span class="text-[10px] text-zinc-500 font-mono block">Status</span><span class="text-sm text-zinc-100">${statusLabel(story.status || 'backlog')}</span></div>
+      <div><span class="text-[10px] text-zinc-500 font-mono block">Sprint</span><span class="text-sm text-zinc-100">${sprint ? sprint.name : '—'}</span></div>
+      <div><span class="text-[10px] text-zinc-500 font-mono block">Phase</span><span class="text-sm text-zinc-100">${story.phase || '—'}</span></div>
+    </div>
+    <div class="mb-4"><span class="text-[10px] text-zinc-500 font-mono block mb-1">Epic</span><span class="text-sm text-zinc-300">${story.epicTitle}</span></div>
+    <div class="mb-4"><span class="text-[10px] text-zinc-500 font-mono block mb-1">Feature</span><span class="text-sm text-zinc-300">${story.featureTitle}</span></div>
+    <div class="mb-4"><span class="text-[10px] text-zinc-500 font-mono block mb-1">Description</span><p class="text-xs text-zinc-300 leading-relaxed">${story.description || '—'}</p></div>
+    ${(story.acceptance_criteria && story.acceptance_criteria.length) ? `
+    <div class="mb-4">
+      <span class="text-[10px] text-zinc-500 font-mono block mb-2">Acceptance Criteria</span>
+      <div class="space-y-1">
+        ${story.acceptance_criteria.map(ac => `<div class="flex items-start gap-2 text-xs">
+          <span class="text-amber-500 mt-0.5">&#9679;</span><span class="text-zinc-300">${ac}</span>
+        </div>`).join('')}
+      </div>
+    </div>` : ''}
+    <div class="flex items-center gap-2 flex-wrap mb-4">
+      ${(story.labels || []).map(l => `<span class="text-[10px] px-1.5 py-0.5 rounded font-mono" style="background:${labelColor(l)}20;color:${labelColor(l)}">${l}</span>`).join('')}
+    </div>
+    ${story.blocked_by && story.blocked_by.length ? `
+    <div>
+      <span class="text-[10px] text-zinc-500 font-mono block mb-2">Blocked By</span>
+      <div class="space-y-1">
+        ${story.blocked_by.map(b => {
+          const blocker = allStories.find(s => s.id === b);
+          return `<div class="text-xs bg-zinc-800 rounded px-3 py-1.5 flex items-center gap-2">
+            <span class="text-red-400 font-mono">${b}</span>
+            ${blocker ? `<span class="text-zinc-400">${blocker.title}</span>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>` : ''}
+  `;
+  document.getElementById('detailOverlay').classList.add('open');
+  lucide.createIcons();
+}
+
 // ==================== GLOBAL SEARCH ====================
 document.getElementById('globalSearch').addEventListener('input', (e) => {
   const q = e.target.value.toLowerCase();
@@ -1534,6 +1852,10 @@ document.getElementById('globalSearch').addEventListener('input', (e) => {
   if (invoiceMatch) { switchTab('invoices'); return; }
   const conMatch = DB.contacts.find(c => c.name.toLowerCase().includes(q));
   if (conMatch) { switchTab('contacts'); return; }
+  if (DB.scrumData) {
+    const scrumMatch = getAllScrumStories(DB.scrumData).find(s => s.title.toLowerCase().includes(q) || s.key.toLowerCase().includes(q));
+    if (scrumMatch) { switchTab('scrum'); return; }
+  }
 });
 
 // ==================== INIT ====================
