@@ -150,6 +150,12 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       <p class="text-xs text-zinc-400 font-mono">Signing in...</p>
     </div>
 
+    <!-- SSO waiting screen -->
+    <div id="loginSSOWaiting" class="hidden bg-zinc-900 border border-zinc-700 rounded-xl p-8 text-center">
+      <svg class="animate-spin w-8 h-8 text-amber-500 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+      <p class="text-xs text-zinc-400 font-mono">Waiting for SSO authentication...</p>
+    </div>
+
     <p class="text-center text-[10px] text-zinc-600 font-mono mt-6">Credentials are stored locally in your browser. Never sent to any server other than Firebase.</p>
   </div>
 </div>
@@ -1658,6 +1664,16 @@ function showLoginScreen() {
   document.getElementById('appShell').style.display = 'none';
   lucide.createIcons();
 
+  if (isEmbeddedInIframe()) {
+    // In iframe — show SSO waiting screen, hide manual login
+    document.getElementById('loginStep1').classList.add('hidden');
+    document.getElementById('loginStep2').classList.add('hidden');
+    document.getElementById('loginSpinner').classList.add('hidden');
+    document.getElementById('loginSSOWaiting').classList.remove('hidden');
+    return;
+  }
+
+  document.getElementById('loginSSOWaiting').classList.add('hidden');
   const saved = loadFirebaseConfig();
   if (saved) {
     // Config exists — prefill and go straight to step 2
