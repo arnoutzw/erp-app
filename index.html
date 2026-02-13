@@ -637,6 +637,106 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   </div>
 </div>
 
+<!-- Power User Settings Panel -->
+<div id="settingsOverlay" class="modal-overlay fixed inset-0 z-50 bg-black/90 backdrop-blur-sm items-center justify-center p-4" onclick="if(event.target===this)closeSettings()">
+  <div class="bg-zinc-900 border border-zinc-700 rounded-xl w-full max-w-lg max-h-[85vh] overflow-y-auto">
+    <div class="flex items-center justify-between p-5 border-b border-zinc-800">
+      <div class="flex items-center gap-2">
+        <i data-lucide="shield" class="w-5 h-5 text-amber-500"></i>
+        <h3 class="font-mono font-bold text-zinc-100">Power User Settings</h3>
+      </div>
+      <button onclick="closeSettings()" class="text-zinc-400 hover:text-amber-400 transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+    <div class="p-5 space-y-5">
+
+      <!-- Delete Project -->
+      <div class="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
+        <div class="flex items-center gap-2 mb-2">
+          <i data-lucide="folder-x" class="w-4 h-4 text-red-400"></i>
+          <h4 class="font-mono font-bold text-zinc-200 text-xs">Delete Project</h4>
+        </div>
+        <p class="text-[10px] text-zinc-500 mb-3">Permanently remove a project and its sync mappings from the local database.</p>
+        <div class="flex items-center gap-2">
+          <select id="pu-deleteProject" class="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 font-mono text-xs text-zinc-100 focus:border-amber-500 focus:outline-none"></select>
+          <button onclick="puDeleteProject()" class="bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs font-mono px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Delete
+          </button>
+        </div>
+      </div>
+
+      <!-- Delete Inventory Item -->
+      <div class="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
+        <div class="flex items-center gap-2 mb-2">
+          <i data-lucide="package-x" class="w-4 h-4 text-red-400"></i>
+          <h4 class="font-mono font-bold text-zinc-200 text-xs">Delete Inventory Item</h4>
+        </div>
+        <p class="text-[10px] text-zinc-500 mb-3">Remove an item from local inventory. Does not delete from Firestore — push after to sync.</p>
+        <div class="flex items-center gap-2">
+          <select id="pu-deleteInvItem" class="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 font-mono text-xs text-zinc-100 focus:border-amber-500 focus:outline-none"></select>
+          <button onclick="puDeleteInventoryItem()" class="bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs font-mono px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Delete
+          </button>
+        </div>
+      </div>
+
+      <!-- Purge Firestore Inventory -->
+      <div class="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
+        <div class="flex items-center gap-2 mb-2">
+          <i data-lucide="cloud-off" class="w-4 h-4 text-red-400"></i>
+          <h4 class="font-mono font-bold text-zinc-200 text-xs">Purge Firestore Inventory</h4>
+        </div>
+        <p class="text-[10px] text-zinc-500 mb-3">Delete all documents in <code class="bg-zinc-800 px-1 rounded">/lab-inventory</code>. Local inventory is not affected.</p>
+        <button onclick="puPurgeFirestoreInventory()" id="pu-purgeFirestoreBtn" class="bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs font-mono px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5">
+          <i data-lucide="flame" class="w-3.5 h-3.5"></i> Purge Remote Collection
+        </button>
+      </div>
+
+      <!-- Export / Import DB -->
+      <div class="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
+        <div class="flex items-center gap-2 mb-2">
+          <i data-lucide="database" class="w-4 h-4 text-amber-400"></i>
+          <h4 class="font-mono font-bold text-zinc-200 text-xs">Export / Import Database</h4>
+        </div>
+        <p class="text-[10px] text-zinc-500 mb-3">Full JSON backup of local ERP data (projects, inventory, invoices, contacts, etc.).</p>
+        <div class="flex items-center gap-2">
+          <button onclick="puExportDB()" class="bg-zinc-700 hover:bg-zinc-600 text-zinc-200 text-xs font-mono px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i> Export JSON
+          </button>
+          <label class="bg-zinc-700 hover:bg-zinc-600 text-zinc-200 text-xs font-mono px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer">
+            <i data-lucide="upload" class="w-3.5 h-3.5"></i> Import JSON
+            <input type="file" accept=".json" onchange="puImportDB(event)" class="hidden">
+          </label>
+        </div>
+      </div>
+
+      <!-- Reset Firebase Config -->
+      <div class="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
+        <div class="flex items-center gap-2 mb-2">
+          <i data-lucide="key-round" class="w-4 h-4 text-amber-400"></i>
+          <h4 class="font-mono font-bold text-zinc-200 text-xs">Firebase Configuration</h4>
+        </div>
+        <p class="text-[10px] text-zinc-500 mb-3">Clear stored Firebase credentials and return to the login/setup screen.</p>
+        <button onclick="puResetFirebaseConfig()" class="bg-zinc-700 hover:bg-zinc-600 text-zinc-200 text-xs font-mono px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5">
+          <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reset Config & Sign Out
+        </button>
+      </div>
+
+      <!-- Factory Reset -->
+      <div class="bg-red-500/5 border border-red-500/20 rounded-lg p-4">
+        <div class="flex items-center gap-2 mb-2">
+          <i data-lucide="alert-octagon" class="w-4 h-4 text-red-400"></i>
+          <h4 class="font-mono font-bold text-red-400 text-xs">Factory Reset</h4>
+        </div>
+        <p class="text-[10px] text-zinc-500 mb-3">Wipe all local data (DB + Firebase config). This cannot be undone.</p>
+        <button onclick="puFactoryReset()" class="bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs font-mono px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5">
+          <i data-lucide="bomb" class="w-3.5 h-3.5"></i> Factory Reset
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <script>
 // ==================== DATA STORE ====================
 const DB = {
@@ -1827,6 +1927,7 @@ function updateSidebarUser() {
         <div class="text-xs text-zinc-300 truncate">${name}</div>
         <div class="text-[10px] text-zinc-600 font-mono truncate">${email}</div>
       </div>
+      <i data-lucide="settings" class="w-4 h-4 text-zinc-600 hover:text-amber-400 cursor-pointer transition-colors flex-shrink-0" onclick="openSettings()" title="Power user settings"></i>
       <i data-lucide="log-out" class="w-4 h-4 text-zinc-600 hover:text-red-400 cursor-pointer transition-colors flex-shrink-0" onclick="logoutAndReset()" title="Sign out"></i>
     `;
   } else {
@@ -1925,6 +2026,148 @@ async function signOutFirebase() {
     addSyncLog('error', 'Sign-out failed: ' + err.message);
   }
   if (currentTab === 'scrumboard') renderScrumboardSync();
+}
+
+// ==================== POWER USER SETTINGS ====================
+function openSettings() {
+  if (!_currentUser) return;
+  populateSettingsDropdowns();
+  document.getElementById('settingsOverlay').classList.add('open');
+  lucide.createIcons();
+}
+
+function closeSettings() {
+  document.getElementById('settingsOverlay').classList.remove('open');
+}
+
+function populateSettingsDropdowns() {
+  // Project dropdown
+  const projSelect = document.getElementById('pu-deleteProject');
+  projSelect.innerHTML = '<option value="">— select project —</option>' +
+    DB.projects.map(p => `<option value="${sanitizeText(p.id)}">${sanitizeText(p.id)} — ${sanitizeText(p.name)}</option>`).join('');
+
+  // Inventory dropdown
+  const invSelect = document.getElementById('pu-deleteInvItem');
+  invSelect.innerHTML = '<option value="">— select item —</option>' +
+    DB.inventory.map(i => `<option value="${sanitizeText(i.id)}">${sanitizeText(i.sku)} — ${sanitizeText(i.name)} (${i.qty} ${sanitizeText(i.unit)})</option>`).join('');
+}
+
+function puDeleteProject() {
+  const id = document.getElementById('pu-deleteProject').value;
+  if (!id) return;
+  const proj = DB.projects.find(p => p.id === id);
+  if (!proj) return;
+  if (!confirm('Delete project "' + proj.name + '" (' + id + ')?\n\nThis also removes related BOM entries and sync mappings. This cannot be undone.')) return;
+
+  DB.projects = DB.projects.filter(p => p.id !== id);
+  DB.bom = DB.bom.filter(b => b.projectId !== id);
+  DB.scrumboardSync.mappings = DB.scrumboardSync.mappings.filter(m => m.erpProjectId !== id);
+  saveDB();
+  addSyncLog('info', 'Deleted project ' + id + ' (' + proj.name + ')');
+  populateSettingsDropdowns();
+  if (currentTab === 'projects') renderProjects();
+  if (currentTab === 'bom') renderBOM();
+  if (currentTab === 'dashboard') renderDashboard();
+}
+
+function puDeleteInventoryItem() {
+  const id = document.getElementById('pu-deleteInvItem').value;
+  if (!id) return;
+  const item = DB.inventory.find(i => i.id === id);
+  if (!item) return;
+  if (!confirm('Delete inventory item "' + item.name + '" (' + item.sku + ')?\n\nThis cannot be undone.')) return;
+
+  DB.inventory = DB.inventory.filter(i => i.id !== id);
+  saveDB();
+  addSyncLog('info', 'Deleted inventory item ' + id + ' (' + item.name + ')');
+  populateSettingsDropdowns();
+  if (currentTab === 'inventory') renderInventory();
+  if (currentTab === 'dashboard') renderDashboard();
+}
+
+async function puPurgeFirestoreInventory() {
+  const col = getLabInventoryCollection();
+  if (!col) { alert('Not authenticated — cannot access Firestore.'); return; }
+  if (!confirm('Delete ALL documents in /lab-inventory on Firestore?\n\nLocal inventory is NOT affected. This cannot be undone.')) return;
+
+  const btn = document.getElementById('pu-purgeFirestoreBtn');
+  btn.disabled = true;
+  btn.textContent = 'Purging...';
+
+  try {
+    const snapshot = await col.get();
+    const batch = firebase.firestore().batch();
+    snapshot.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+    addSyncLog('warn', 'Purged ' + snapshot.size + ' documents from /lab-inventory');
+    alert('Purged ' + snapshot.size + ' documents from Firestore /lab-inventory.');
+  } catch (err) {
+    addSyncLog('error', 'Firestore purge failed: ' + err.message);
+    alert('Purge failed: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i data-lucide="flame" class="w-3.5 h-3.5"></i> Purge Remote Collection';
+    lucide.createIcons();
+  }
+}
+
+function puExportDB() {
+  const data = JSON.stringify(DB, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'forgeERP-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  addSyncLog('info', 'Database exported to JSON');
+}
+
+function puImportDB(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (!confirm('Import will OVERWRITE your current local database with the contents of "' + file.name + '".\n\nContinue?')) {
+    event.target.value = '';
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (!imported || typeof imported !== 'object') throw new Error('Invalid format');
+      // Merge imported keys into DB
+      Object.keys(imported).forEach(k => { if (DB.hasOwnProperty(k)) DB[k] = imported[k]; });
+      saveDB();
+      addSyncLog('info', 'Database imported from ' + file.name);
+      alert('Import successful. Refreshing view...');
+      populateSettingsDropdowns();
+      renderTab(currentTab);
+    } catch (err) {
+      alert('Import failed: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function puResetFirebaseConfig() {
+  if (!confirm('Clear Firebase config and sign out?\n\nYou will be returned to the login screen.')) return;
+  closeSettings();
+  logoutAndReset();
+  clearFirebaseConfig();
+}
+
+function puFactoryReset() {
+  if (!confirm('⚠ FACTORY RESET ⚠\n\nThis will permanently delete:\n• All local ERP data\n• Firebase configuration\n• All sync mappings\n\nThis CANNOT be undone. Continue?')) return;
+  if (!confirm('Are you absolutely sure? Type OK in your mind and press OK.')) return;
+  closeSettings();
+  if (_firebaseAuth) { try { _firebaseAuth.signOut(); } catch(e) {} }
+  localStorage.removeItem('forgeERP');
+  localStorage.removeItem(FIREBASE_CONFIG_KEY);
+  location.reload();
 }
 
 // ==================== INVENTORY SYNC (Firestore /lab-inventory) ====================
@@ -2949,7 +3192,7 @@ function init() {
 }
 
 // Close modals on escape
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeModal(); closeDetail(); } });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeModal(); closeDetail(); closeSettings(); } });
 // Close modals on overlay click
 document.getElementById('modalOverlay').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeModal(); });
 document.getElementById('detailOverlay').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeDetail(); });
