@@ -71,6 +71,15 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
       </div>
       <p class="text-xs text-zinc-500 mb-4">Enter your Firebase project credentials. Find them in the <a href="https://console.firebase.google.com" target="_blank" rel="noopener noreferrer" class="text-amber-400 hover:text-amber-300 underline">Firebase Console</a> → Project Settings → General → Your apps.</p>
 
+      <!-- Paste config snippet -->
+      <div class="mb-4">
+        <label class="text-[10px] text-zinc-500 font-mono block mb-1">PASTE CONFIG SNIPPET</label>
+        <textarea id="cfg-paste" rows="3" placeholder='Paste const firebaseConfig = { apiKey: "...", ... };' class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 font-mono text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-amber-500 focus:outline-none resize-none"></textarea>
+        <p class="text-[10px] text-zinc-600 mt-1">Paste the full config object from the Firebase Console — fields below auto-fill.</p>
+      </div>
+
+      <div class="relative mb-3"><div class="absolute inset-0 flex items-center"><div class="w-full border-t border-zinc-800"></div></div><div class="relative flex justify-center"><span class="bg-zinc-900 px-3 text-[10px] text-zinc-600 font-mono">or fill manually</span></div></div>
+
       <div class="space-y-3">
         <div>
           <label class="text-[10px] text-zinc-500 font-mono block mb-1">API KEY <span class="text-red-400">*</span></label>
@@ -380,6 +389,34 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
           <i data-lucide="plus" class="w-4 h-4"></i> Add Item
         </button>
       </div>
+      <!-- Inventory Sync Bar -->
+      <div id="invSyncBar" class="bg-zinc-900 border border-zinc-700 rounded-lg p-3 mb-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
+            <i data-lucide="cloud" class="w-4 h-4 text-zinc-500"></i>
+            <span class="text-xs font-mono text-zinc-400">Firestore <code class="bg-zinc-800 px-1 rounded text-zinc-500">/lab-inventory</code></span>
+          </div>
+          <span class="text-[10px] font-mono px-2 py-0.5 rounded" id="invSyncStatus">Not signed in</span>
+          <div id="invSyncSpinner" class="hidden">
+            <svg class="animate-spin w-3.5 h-3.5 text-amber-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="pullInventoryFromFirestore()" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-mono px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed" title="Pull from Firestore">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i> Pull
+          </button>
+          <button onclick="pushInventoryToFirestore()" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-mono px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed" title="Push to Firestore">
+            <i data-lucide="upload" class="w-3.5 h-3.5"></i> Push
+          </button>
+          <button onclick="syncInventoryBidirectional()" id="invSyncBtn" class="bg-amber-500 hover:bg-amber-400 text-zinc-900 text-xs font-mono font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed" title="2-way sync">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Sync
+          </button>
+          <label class="flex items-center gap-1.5 text-[10px] font-mono text-zinc-500 cursor-pointer ml-1" title="Auto-sync on changes">
+            <input type="checkbox" id="invRealtimeToggle" class="accent-amber-500" onchange="toggleInventoryRealtime()"> Live
+          </label>
+        </div>
+      </div>
+
       <div id="inventoryTable" class="bg-zinc-900 border border-zinc-700 rounded-lg overflow-hidden"></div>
     </div>
 
@@ -1629,6 +1666,45 @@ document.getElementById('cfg-projectId').addEventListener('input', function() {
   if (!sb.value || sb.value.endsWith('.appspot.com')) sb.value = pid ? pid + '.appspot.com' : '';
 });
 
+// Parse pasted firebaseConfig snippet and fill form fields
+document.getElementById('cfg-paste').addEventListener('input', function() {
+  const raw = this.value;
+  if (!raw || raw.length < 10) return;
+  const parsed = parseFirebaseConfigSnippet(raw);
+  if (parsed) {
+    prefillConfigFields(parsed);
+    this.style.borderColor = '#22c55e';
+    setTimeout(() => { this.style.borderColor = ''; }, 1500);
+  }
+});
+
+function parseFirebaseConfigSnippet(text) {
+  try {
+    // Strip variable declaration and trailing semicolons: "const firebaseConfig = {...};" -> "{...}"
+    let cleaned = text.trim()
+      .replace(/^(const|let|var)\s+\w+\s*=\s*/, '')
+      .replace(/;\s*$/, '')
+      .trim();
+    // Convert JS object literal to valid JSON: unquoted keys -> quoted keys
+    cleaned = cleaned.replace(/(\w+)\s*:/g, '"$1":');
+    // Remove trailing commas before closing brace
+    cleaned = cleaned.replace(/,\s*}/g, '}');
+    const obj = JSON.parse(cleaned);
+    if (obj && typeof obj === 'object' && obj.apiKey && obj.projectId) {
+      return {
+        apiKey: String(obj.apiKey || ''),
+        authDomain: String(obj.authDomain || ''),
+        projectId: String(obj.projectId || ''),
+        storageBucket: String(obj.storageBucket || ''),
+        messagingSenderId: String(obj.messagingSenderId || ''),
+        appId: String(obj.appId || ''),
+        measurementId: String(obj.measurementId || '')
+      };
+    }
+  } catch (e) { /* not valid yet — user still typing */ }
+  return null;
+}
+
 function prefillConfigFields(cfg) {
   if (!cfg) return;
   document.getElementById('cfg-apiKey').value = cfg.apiKey || '';
@@ -1637,6 +1713,7 @@ function prefillConfigFields(cfg) {
   document.getElementById('cfg-storageBucket').value = cfg.storageBucket || '';
   document.getElementById('cfg-messagingSenderId').value = cfg.messagingSenderId || '';
   document.getElementById('cfg-appId').value = cfg.appId || '';
+  document.getElementById('cfg-paste').value = '';
 }
 
 function showLoginStep2() {
@@ -1848,6 +1925,305 @@ async function signOutFirebase() {
     addSyncLog('error', 'Sign-out failed: ' + err.message);
   }
   if (currentTab === 'scrumboard') renderScrumboardSync();
+}
+
+// ==================== INVENTORY SYNC (Firestore /lab-inventory) ====================
+let _inventorySyncing = false;
+let _inventoryListener = null;
+
+function getLabInventoryCollection() {
+  if (!_currentUser || !firebase.apps.length) return null;
+  return firebase.firestore().collection('lab-inventory');
+}
+
+async function pushInventoryToFirestore() {
+  const col = getLabInventoryCollection();
+  if (!col) { addSyncLog('error', 'Inventory push failed — not authenticated'); return; }
+  if (_inventorySyncing) return;
+  _inventorySyncing = true;
+  updateInventorySyncUI('pushing');
+
+  try {
+    addSyncLog('info', 'Inventory push: uploading ' + DB.inventory.length + ' items to /lab-inventory...');
+    const batch = firebase.firestore().batch();
+
+    // Write each inventory item as a doc keyed by its id
+    DB.inventory.forEach(item => {
+      const docRef = col.doc(item.id);
+      batch.set(docRef, {
+        id: item.id,
+        name: item.name,
+        sku: item.sku,
+        category: item.category,
+        qty: item.qty,
+        minQty: item.minQty,
+        unit: item.unit,
+        unitCost: item.unitCost,
+        location: item.location,
+        supplier: item.supplier,
+        _updatedAt: Date.now(),
+        _updatedBy: _currentUser.email || _currentUser.uid
+      });
+    });
+
+    await batch.commit();
+    addSyncLog('info', 'Inventory push: ' + DB.inventory.length + ' items written to Firestore');
+  } catch (err) {
+    addSyncLog('error', 'Inventory push failed: ' + err.message);
+  } finally {
+    _inventorySyncing = false;
+    updateInventorySyncUI('idle');
+  }
+}
+
+async function pullInventoryFromFirestore() {
+  const col = getLabInventoryCollection();
+  if (!col) { addSyncLog('error', 'Inventory pull failed — not authenticated'); return; }
+  if (_inventorySyncing) return;
+  _inventorySyncing = true;
+  updateInventorySyncUI('pulling');
+
+  try {
+    addSyncLog('info', 'Inventory pull: fetching /lab-inventory...');
+    const snapshot = await col.get();
+
+    if (snapshot.empty) {
+      addSyncLog('warn', 'Inventory pull: /lab-inventory collection is empty');
+      _inventorySyncing = false;
+      updateInventorySyncUI('idle');
+      return;
+    }
+
+    let created = 0, updated = 0;
+    snapshot.forEach(doc => {
+      const remote = doc.data();
+      if (!remote.id || typeof remote.id !== 'string') return;
+
+      const existing = DB.inventory.find(i => i.id === remote.id);
+      if (existing) {
+        // Update existing item if remote is newer
+        if (remote._updatedAt && remote._updatedAt > (existing._updatedAt || 0)) {
+          existing.name = remote.name || existing.name;
+          existing.sku = remote.sku || existing.sku;
+          existing.category = remote.category || existing.category;
+          existing.qty = typeof remote.qty === 'number' ? remote.qty : existing.qty;
+          existing.minQty = typeof remote.minQty === 'number' ? remote.minQty : existing.minQty;
+          existing.unit = remote.unit || existing.unit;
+          existing.unitCost = typeof remote.unitCost === 'number' ? remote.unitCost : existing.unitCost;
+          existing.location = remote.location || existing.location;
+          existing.supplier = remote.supplier || existing.supplier;
+          existing._updatedAt = remote._updatedAt;
+          updated++;
+        }
+      } else {
+        // Create new local item from Firestore
+        DB.inventory.push({
+          id: remote.id,
+          name: remote.name || 'Unnamed',
+          sku: remote.sku || '',
+          category: remote.category || 'electronic',
+          qty: typeof remote.qty === 'number' ? remote.qty : 0,
+          minQty: typeof remote.minQty === 'number' ? remote.minQty : 0,
+          unit: remote.unit || 'pcs',
+          unitCost: typeof remote.unitCost === 'number' ? remote.unitCost : 0,
+          location: remote.location || '',
+          supplier: remote.supplier || '',
+          _updatedAt: remote._updatedAt || Date.now()
+        });
+        created++;
+      }
+    });
+
+    saveDB();
+    addSyncLog('info', `Inventory pull: ${created} created, ${updated} updated from ${snapshot.size} remote items`);
+    if (currentTab === 'inventory') renderInventory();
+  } catch (err) {
+    addSyncLog('error', 'Inventory pull failed: ' + err.message);
+  } finally {
+    _inventorySyncing = false;
+    updateInventorySyncUI('idle');
+  }
+}
+
+async function syncInventoryBidirectional() {
+  const col = getLabInventoryCollection();
+  if (!col) { addSyncLog('error', 'Inventory sync failed — not authenticated'); return; }
+  if (_inventorySyncing) return;
+  _inventorySyncing = true;
+  updateInventorySyncUI('syncing');
+
+  try {
+    addSyncLog('info', 'Inventory 2-way sync starting...');
+
+    // Step 1: Pull remote items
+    const snapshot = await col.get();
+    const remoteMap = {};
+    snapshot.forEach(doc => { remoteMap[doc.id] = doc.data(); });
+
+    let created = 0, updated = 0, pushed = 0;
+
+    // Pull: merge remote into local
+    Object.values(remoteMap).forEach(remote => {
+      if (!remote.id || typeof remote.id !== 'string') return;
+      const existing = DB.inventory.find(i => i.id === remote.id);
+      if (existing) {
+        if (remote._updatedAt && remote._updatedAt > (existing._updatedAt || 0)) {
+          existing.name = remote.name || existing.name;
+          existing.sku = remote.sku || existing.sku;
+          existing.category = remote.category || existing.category;
+          existing.qty = typeof remote.qty === 'number' ? remote.qty : existing.qty;
+          existing.minQty = typeof remote.minQty === 'number' ? remote.minQty : existing.minQty;
+          existing.unit = remote.unit || existing.unit;
+          existing.unitCost = typeof remote.unitCost === 'number' ? remote.unitCost : existing.unitCost;
+          existing.location = remote.location || existing.location;
+          existing.supplier = remote.supplier || existing.supplier;
+          existing._updatedAt = remote._updatedAt;
+          updated++;
+        }
+      } else {
+        DB.inventory.push({
+          id: remote.id,
+          name: remote.name || 'Unnamed',
+          sku: remote.sku || '',
+          category: remote.category || 'electronic',
+          qty: typeof remote.qty === 'number' ? remote.qty : 0,
+          minQty: typeof remote.minQty === 'number' ? remote.minQty : 0,
+          unit: remote.unit || 'pcs',
+          unitCost: typeof remote.unitCost === 'number' ? remote.unitCost : 0,
+          location: remote.location || '',
+          supplier: remote.supplier || '',
+          _updatedAt: remote._updatedAt || Date.now()
+        });
+        created++;
+      }
+    });
+
+    // Push: write all local items back (local wins for items not updated from remote)
+    const batch = firebase.firestore().batch();
+    DB.inventory.forEach(item => {
+      const docRef = col.doc(item.id);
+      batch.set(docRef, {
+        id: item.id,
+        name: item.name,
+        sku: item.sku,
+        category: item.category,
+        qty: item.qty,
+        minQty: item.minQty,
+        unit: item.unit,
+        unitCost: item.unitCost,
+        location: item.location,
+        supplier: item.supplier,
+        _updatedAt: item._updatedAt || Date.now(),
+        _updatedBy: _currentUser.email || _currentUser.uid
+      });
+      pushed++;
+    });
+    await batch.commit();
+
+    saveDB();
+    addSyncLog('info', `Inventory sync: ${created} created, ${updated} updated, ${pushed} pushed to Firestore`);
+    if (currentTab === 'inventory') renderInventory();
+  } catch (err) {
+    addSyncLog('error', 'Inventory sync failed: ' + err.message);
+  } finally {
+    _inventorySyncing = false;
+    updateInventorySyncUI('idle');
+  }
+}
+
+function startInventoryListener() {
+  if (_inventoryListener) return;
+  const col = getLabInventoryCollection();
+  if (!col) return;
+
+  _inventoryListener = col.onSnapshot(snapshot => {
+    if (_inventorySyncing) return; // skip if we're the ones writing
+    let created = 0, updated = 0;
+
+    snapshot.docChanges().forEach(change => {
+      if (change.type === 'removed') return;
+      const remote = change.doc.data();
+      if (!remote.id) return;
+
+      const existing = DB.inventory.find(i => i.id === remote.id);
+      if (existing) {
+        if (remote._updatedAt && remote._updatedAt > (existing._updatedAt || 0)) {
+          existing.name = remote.name || existing.name;
+          existing.sku = remote.sku || existing.sku;
+          existing.category = remote.category || existing.category;
+          existing.qty = typeof remote.qty === 'number' ? remote.qty : existing.qty;
+          existing.minQty = typeof remote.minQty === 'number' ? remote.minQty : existing.minQty;
+          existing.unit = remote.unit || existing.unit;
+          existing.unitCost = typeof remote.unitCost === 'number' ? remote.unitCost : existing.unitCost;
+          existing.location = remote.location || existing.location;
+          existing.supplier = remote.supplier || existing.supplier;
+          existing._updatedAt = remote._updatedAt;
+          updated++;
+        }
+      } else {
+        DB.inventory.push({
+          id: remote.id,
+          name: remote.name || 'Unnamed',
+          sku: remote.sku || '',
+          category: remote.category || 'electronic',
+          qty: typeof remote.qty === 'number' ? remote.qty : 0,
+          minQty: typeof remote.minQty === 'number' ? remote.minQty : 0,
+          unit: remote.unit || 'pcs',
+          unitCost: typeof remote.unitCost === 'number' ? remote.unitCost : 0,
+          location: remote.location || '',
+          supplier: remote.supplier || '',
+          _updatedAt: remote._updatedAt || Date.now()
+        });
+        created++;
+      }
+    });
+
+    if (created > 0 || updated > 0) {
+      saveDB();
+      addSyncLog('info', `Inventory realtime: ${created} created, ${updated} updated`);
+      if (currentTab === 'inventory') renderInventory();
+    }
+  }, err => {
+    addSyncLog('error', 'Inventory listener error: ' + err.message);
+    _inventoryListener = null;
+  });
+
+  addSyncLog('info', 'Inventory realtime listener started on /lab-inventory');
+}
+
+function stopInventoryListener() {
+  if (_inventoryListener) {
+    _inventoryListener();
+    _inventoryListener = null;
+    addSyncLog('info', 'Inventory realtime listener stopped');
+  }
+}
+
+function toggleInventoryRealtime() {
+  const checked = document.getElementById('invRealtimeToggle').checked;
+  if (checked) {
+    startInventoryListener();
+  } else {
+    stopInventoryListener();
+  }
+}
+
+function updateInventorySyncUI(state) {
+  const btn = document.getElementById('invSyncBtn');
+  const spinner = document.getElementById('invSyncSpinner');
+  const statusEl = document.getElementById('invSyncStatus');
+  if (!btn) return;
+
+  if (state === 'idle') {
+    btn.disabled = false;
+    if (spinner) spinner.classList.add('hidden');
+    if (statusEl) statusEl.textContent = _currentUser ? 'Connected' : 'Not signed in';
+  } else {
+    btn.disabled = true;
+    if (spinner) spinner.classList.remove('hidden');
+    const labels = { pushing: 'Pushing...', pulling: 'Pulling...', syncing: 'Syncing...' };
+    if (statusEl) statusEl.textContent = labels[state] || 'Working...';
+  }
 }
 
 // ==================== SCRUMBOARD SYNC ====================
