@@ -17,7 +17,6 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js"></script>
 <script>
 tailwind.config = {
   theme: {
@@ -51,7 +50,109 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 </style>
 </head>
 <body class="bg-zinc-950 font-sans text-zinc-300 text-sm h-full">
-<div class="flex h-full">
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" class="fixed inset-0 z-[100] bg-zinc-950 flex items-center justify-center p-4">
+  <div class="w-full max-w-md">
+    <!-- Logo -->
+    <div class="text-center mb-8">
+      <div class="w-14 h-14 bg-amber-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <i data-lucide="anvil" class="w-8 h-8 text-zinc-900"></i>
+      </div>
+      <h1 class="font-mono font-bold text-amber-500 text-2xl">ForgeERP</h1>
+      <p class="text-xs text-zinc-500 font-mono mt-1">Engineering & Prototyping</p>
+    </div>
+
+    <!-- Step 1: Firebase Config -->
+    <div id="loginStep1" class="bg-zinc-900 border border-zinc-700 rounded-xl p-6">
+      <div class="flex items-center gap-2 mb-4">
+        <div class="w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center text-zinc-900 font-mono font-bold text-xs">1</div>
+        <h2 class="font-mono font-bold text-zinc-100 text-sm">Firebase Configuration</h2>
+      </div>
+      <p class="text-xs text-zinc-500 mb-4">Enter your Firebase project credentials. Find them in the <a href="https://console.firebase.google.com" target="_blank" rel="noopener noreferrer" class="text-amber-400 hover:text-amber-300 underline">Firebase Console</a> → Project Settings → General → Your apps.</p>
+
+      <div class="space-y-3">
+        <div>
+          <label class="text-[10px] text-zinc-500 font-mono block mb-1">API KEY <span class="text-red-400">*</span></label>
+          <input type="password" id="cfg-apiKey" placeholder="AIzaSy..." class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 font-mono text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-amber-500 focus:outline-none" autocomplete="off">
+        </div>
+        <div>
+          <label class="text-[10px] text-zinc-500 font-mono block mb-1">PROJECT ID <span class="text-red-400">*</span></label>
+          <input type="text" id="cfg-projectId" placeholder="my-project-id" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 font-mono text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-amber-500 focus:outline-none">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-[10px] text-zinc-500 font-mono block mb-1">AUTH DOMAIN</label>
+            <input type="text" id="cfg-authDomain" placeholder="auto-filled from project ID" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 font-mono text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-amber-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="text-[10px] text-zinc-500 font-mono block mb-1">STORAGE BUCKET</label>
+            <input type="text" id="cfg-storageBucket" placeholder="auto-filled from project ID" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 font-mono text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-amber-500 focus:outline-none">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-[10px] text-zinc-500 font-mono block mb-1">MESSAGING SENDER ID</label>
+            <input type="text" id="cfg-messagingSenderId" placeholder="123456789012" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 font-mono text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-amber-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="text-[10px] text-zinc-500 font-mono block mb-1">APP ID</label>
+            <input type="text" id="cfg-appId" placeholder="1:123...:web:abc..." class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 font-mono text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-amber-500 focus:outline-none">
+          </div>
+        </div>
+      </div>
+
+      <div id="loginConfigError" class="hidden mt-3 text-xs text-red-400 font-mono bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"></div>
+
+      <button onclick="submitFirebaseConfig()" class="w-full mt-5 bg-amber-500 hover:bg-amber-400 text-zinc-900 font-mono font-bold px-4 py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
+        Save & Continue <i data-lucide="arrow-right" class="w-4 h-4"></i>
+      </button>
+
+      <button onclick="skipFirebaseSetup()" class="w-full mt-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 font-mono text-xs px-4 py-2 rounded-lg transition-colors">
+        Skip — use ERP without sync
+      </button>
+    </div>
+
+    <!-- Step 2: Google Sign-In -->
+    <div id="loginStep2" class="bg-zinc-900 border border-zinc-700 rounded-xl p-6 hidden">
+      <div class="flex items-center gap-2 mb-4">
+        <div class="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-zinc-900 font-mono font-bold text-xs">&#10003;</div>
+        <span class="text-xs text-green-400 font-mono">Firebase configured</span>
+        <span class="text-zinc-600 mx-1">·</span>
+        <span class="text-xs text-zinc-500 font-mono" id="loginProjectLabel"></span>
+      </div>
+      <div class="flex items-center gap-2 mb-4">
+        <div class="w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center text-zinc-900 font-mono font-bold text-xs">2</div>
+        <h2 class="font-mono font-bold text-zinc-100 text-sm">Sign in with Google</h2>
+      </div>
+      <p class="text-xs text-zinc-500 mb-5">Authenticate with your Google account to access the scrumboard sync. Your account must be authorized in the Firebase project.</p>
+
+      <div id="loginAuthError" class="hidden mb-3 text-xs text-red-400 font-mono bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"></div>
+
+      <button onclick="loginWithGoogle()" id="loginGoogleBtn" class="w-full bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 text-zinc-100 font-mono text-sm px-4 py-3 rounded-lg transition-colors flex items-center justify-center gap-3">
+        <svg class="w-5 h-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Sign in with Google
+      </button>
+
+      <div class="flex items-center gap-3 mt-4">
+        <button onclick="loginGoBackToStep1()" class="text-xs font-mono text-zinc-500 hover:text-amber-400 transition-colors">Change config</button>
+        <span class="text-zinc-700">·</span>
+        <button onclick="skipFirebaseSetup()" class="text-xs font-mono text-zinc-500 hover:text-amber-400 transition-colors">Skip — use without sync</button>
+      </div>
+    </div>
+
+    <!-- Signing-in spinner -->
+    <div id="loginSpinner" class="hidden bg-zinc-900 border border-zinc-700 rounded-xl p-8 text-center">
+      <svg class="animate-spin w-8 h-8 text-amber-500 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+      <p class="text-xs text-zinc-400 font-mono">Signing in...</p>
+    </div>
+
+    <p class="text-center text-[10px] text-zinc-600 font-mono mt-6">Credentials are stored locally in your browser. Never sent to any server other than Firebase.</p>
+  </div>
+</div>
+
+<!-- APP (hidden until authenticated or skipped) -->
+<div id="appShell" class="flex h-full" style="display:none;">
 
 <!-- Sidebar -->
 <aside id="sidebar" class="w-60 bg-zinc-900 border-r border-zinc-800 flex flex-col flex-shrink-0 h-full overflow-y-auto">
@@ -105,13 +206,13 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
     </a>
   </nav>
   <div class="p-4 border-t border-zinc-800">
-    <div class="flex items-center gap-2">
+    <div id="sidebarUserInfo" class="flex items-center gap-2">
       <div class="w-7 h-7 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500 font-mono text-xs font-bold">AZ</div>
       <div class="flex-1 min-w-0">
         <div class="text-xs text-zinc-300 truncate">Arnout</div>
         <div class="text-[10px] text-zinc-600 font-mono">Admin</div>
       </div>
-      <i data-lucide="settings" class="w-4 h-4 text-zinc-600 hover:text-zinc-400 cursor-pointer transition-colors"></i>
+      <i data-lucide="log-out" class="w-4 h-4 text-zinc-600 hover:text-red-400 cursor-pointer transition-colors" onclick="logoutAndReset()" title="Sign out & reset config"></i>
     </div>
   </div>
 </aside>
@@ -1462,7 +1563,8 @@ function renderContacts() {
   lucide.createIcons();
 }
 
-// ==================== SCRUMBOARD SYNC ====================
+// ==================== FIREBASE CONFIG & AUTH ====================
+const FIREBASE_CONFIG_KEY = 'forgeERP_firebaseConfig';
 let firestoreDoc = null;
 let scrumboardListener = null;
 let scrumboardConnected = false;
@@ -1470,53 +1572,256 @@ let _lastScrumboardState = null;
 let _firebaseAuth = null;
 let _currentUser = null;
 
-function isFirebaseConfigured() {
-  return typeof FIREBASE_CONFIG !== 'undefined' &&
-    FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey.length > 5 &&
-    FIREBASE_CONFIG.projectId;
+function loadFirebaseConfig() {
+  try {
+    const raw = localStorage.getItem(FIREBASE_CONFIG_KEY);
+    if (!raw) return null;
+    const cfg = JSON.parse(raw);
+    if (cfg && cfg.apiKey && cfg.projectId) return cfg;
+  } catch (e) { /* corrupted */ }
+  return null;
 }
 
-function initFirebase() {
-  if (!isFirebaseConfigured()) {
-    scrumboardConnected = false;
-    addSyncLog('warn', 'Firebase not configured — copy firebase-config.example.js → firebase-config.js and add your credentials');
+function saveFirebaseConfig(cfg) {
+  localStorage.setItem(FIREBASE_CONFIG_KEY, JSON.stringify(cfg));
+}
+
+function clearFirebaseConfig() {
+  localStorage.removeItem(FIREBASE_CONFIG_KEY);
+}
+
+function isFirebaseConfigured() {
+  return !!loadFirebaseConfig();
+}
+
+// ---- Login screen logic ----
+function showLoginScreen() {
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('appShell').style.display = 'none';
+  lucide.createIcons();
+
+  const saved = loadFirebaseConfig();
+  if (saved) {
+    // Config exists — prefill and go straight to step 2
+    prefillConfigFields(saved);
+    showLoginStep2();
+  } else {
+    document.getElementById('loginStep1').classList.remove('hidden');
+    document.getElementById('loginStep2').classList.add('hidden');
+    document.getElementById('loginSpinner').classList.add('hidden');
+  }
+}
+
+function showApp() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appShell').style.display = 'flex';
+  updateSidebarUser();
+  renderDashboard();
+  lucide.createIcons();
+}
+
+// Auto-fill authDomain & storageBucket from projectId
+document.getElementById('cfg-projectId').addEventListener('input', function() {
+  const pid = this.value.trim();
+  const ad = document.getElementById('cfg-authDomain');
+  const sb = document.getElementById('cfg-storageBucket');
+  if (!ad.value || ad.value.endsWith('.firebaseapp.com')) ad.value = pid ? pid + '.firebaseapp.com' : '';
+  if (!sb.value || sb.value.endsWith('.appspot.com')) sb.value = pid ? pid + '.appspot.com' : '';
+});
+
+function prefillConfigFields(cfg) {
+  if (!cfg) return;
+  document.getElementById('cfg-apiKey').value = cfg.apiKey || '';
+  document.getElementById('cfg-projectId').value = cfg.projectId || '';
+  document.getElementById('cfg-authDomain').value = cfg.authDomain || '';
+  document.getElementById('cfg-storageBucket').value = cfg.storageBucket || '';
+  document.getElementById('cfg-messagingSenderId').value = cfg.messagingSenderId || '';
+  document.getElementById('cfg-appId').value = cfg.appId || '';
+}
+
+function showLoginStep2() {
+  document.getElementById('loginStep1').classList.add('hidden');
+  document.getElementById('loginStep2').classList.remove('hidden');
+  document.getElementById('loginSpinner').classList.add('hidden');
+  const cfg = loadFirebaseConfig();
+  document.getElementById('loginProjectLabel').textContent = cfg ? cfg.projectId : '';
+}
+
+function loginGoBackToStep1() {
+  document.getElementById('loginStep1').classList.remove('hidden');
+  document.getElementById('loginStep2').classList.add('hidden');
+  document.getElementById('loginSpinner').classList.add('hidden');
+  const saved = loadFirebaseConfig();
+  if (saved) prefillConfigFields(saved);
+}
+
+function submitFirebaseConfig() {
+  const errEl = document.getElementById('loginConfigError');
+  errEl.classList.add('hidden');
+
+  const apiKey = document.getElementById('cfg-apiKey').value.trim();
+  const projectId = document.getElementById('cfg-projectId').value.trim();
+
+  if (!apiKey || !projectId) {
+    errEl.textContent = 'API Key and Project ID are required.';
+    errEl.classList.remove('hidden');
     return;
   }
 
-  try {
-    if (!firebase.apps.length) {
-      firebase.initializeApp(FIREBASE_CONFIG);
-    }
-    _firebaseAuth = firebase.auth();
+  // Validate API key format
+  if (!apiKey.startsWith('AIza')) {
+    errEl.textContent = 'API Key should start with "AIza". Check your Firebase Console.';
+    errEl.classList.remove('hidden');
+    return;
+  }
 
-    // Listen for auth state changes
-    _firebaseAuth.onAuthStateChanged(user => {
-      _currentUser = user;
-      if (user) {
-        const db = firebase.firestore();
-        firestoreDoc = db.collection('kanban-boards').doc('shared');
-        scrumboardConnected = true;
-        addSyncLog('info', 'Authenticated as ' + sanitizeText(user.email || user.uid));
-        if (DB.scrumboardSync.autoSync) {
-          startRealtimeListener();
-        }
-      } else {
-        firestoreDoc = null;
-        scrumboardConnected = false;
-        stopRealtimeListener();
-        addSyncLog('info', 'Signed out — Firestore disconnected');
-      }
-      if (currentTab === 'scrumboard') renderScrumboardSync();
-    });
+  const cfg = {
+    apiKey,
+    projectId,
+    authDomain: document.getElementById('cfg-authDomain').value.trim() || (projectId + '.firebaseapp.com'),
+    storageBucket: document.getElementById('cfg-storageBucket').value.trim() || (projectId + '.appspot.com'),
+    messagingSenderId: document.getElementById('cfg-messagingSenderId').value.trim() || '',
+    appId: document.getElementById('cfg-appId').value.trim() || ''
+  };
+
+  saveFirebaseConfig(cfg);
+  initFirebaseFromConfig(cfg);
+  showLoginStep2();
+}
+
+function skipFirebaseSetup() {
+  showApp();
+}
+
+async function loginWithGoogle() {
+  if (!_firebaseAuth) {
+    const cfg = loadFirebaseConfig();
+    if (cfg) initFirebaseFromConfig(cfg);
+    if (!_firebaseAuth) {
+      document.getElementById('loginAuthError').textContent = 'Firebase not initialized. Go back and check your config.';
+      document.getElementById('loginAuthError').classList.remove('hidden');
+      return;
+    }
+  }
+
+  document.getElementById('loginStep2').classList.add('hidden');
+  document.getElementById('loginSpinner').classList.remove('hidden');
+  document.getElementById('loginAuthError').classList.add('hidden');
+
+  try {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    await _firebaseAuth.signInWithPopup(provider);
+    // onAuthStateChanged will call showApp()
+  } catch (err) {
+    document.getElementById('loginSpinner').classList.add('hidden');
+    document.getElementById('loginStep2').classList.remove('hidden');
+    if (err.code !== 'auth/popup-closed-by-user') {
+      document.getElementById('loginAuthError').textContent = err.message;
+      document.getElementById('loginAuthError').classList.remove('hidden');
+    }
+  }
+}
+
+async function logoutAndReset() {
+  if (_firebaseAuth) {
+    stopRealtimeListener();
+    try { await _firebaseAuth.signOut(); } catch (e) { /* ignore */ }
+  }
+  _currentUser = null;
+  firestoreDoc = null;
+  scrumboardConnected = false;
+  _firebaseAuth = null;
+  showLoginScreen();
+}
+
+function updateSidebarUser() {
+  const el = document.getElementById('sidebarUserInfo');
+  if (!el) return;
+  if (_currentUser) {
+    const email = sanitizeText(_currentUser.email || _currentUser.uid);
+    const name = sanitizeText(_currentUser.displayName || email.split('@')[0]);
+    const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '?';
+    const photo = _currentUser.photoURL
+      ? `<img src="${sanitizeText(_currentUser.photoURL)}" class="w-7 h-7 rounded-full" referrerpolicy="no-referrer" alt="">`
+      : `<div class="w-7 h-7 rounded-full bg-green-500/20 flex items-center justify-center text-green-400 font-mono text-xs font-bold">${initials}</div>`;
+    el.innerHTML = `
+      ${photo}
+      <div class="flex-1 min-w-0">
+        <div class="text-xs text-zinc-300 truncate">${name}</div>
+        <div class="text-[10px] text-zinc-600 font-mono truncate">${email}</div>
+      </div>
+      <i data-lucide="log-out" class="w-4 h-4 text-zinc-600 hover:text-red-400 cursor-pointer transition-colors flex-shrink-0" onclick="logoutAndReset()" title="Sign out"></i>
+    `;
+  } else {
+    el.innerHTML = `
+      <div class="w-7 h-7 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500 font-mono text-xs font-bold">?</div>
+      <div class="flex-1 min-w-0">
+        <div class="text-xs text-zinc-400 truncate">Not signed in</div>
+        <div class="text-[10px] text-zinc-600 font-mono">Sync disabled</div>
+      </div>
+      <i data-lucide="log-in" class="w-4 h-4 text-zinc-600 hover:text-amber-400 cursor-pointer transition-colors flex-shrink-0" onclick="showLoginScreen()" title="Sign in"></i>
+    `;
+  }
+  lucide.createIcons();
+}
+
+// ---- Firebase initialization ----
+function initFirebaseFromConfig(cfg) {
+  try {
+    // Destroy existing app if config changed
+    if (firebase.apps.length) {
+      firebase.app().delete().then(() => {
+        _doFirebaseInit(cfg);
+      });
+      return;
+    }
+    _doFirebaseInit(cfg);
   } catch (err) {
     scrumboardConnected = false;
     addSyncLog('error', 'Firebase init failed: ' + err.message);
   }
 }
 
+function _doFirebaseInit(cfg) {
+  firebase.initializeApp(cfg);
+  _firebaseAuth = firebase.auth();
+
+  _firebaseAuth.onAuthStateChanged(user => {
+    _currentUser = user;
+    if (user) {
+      const db = firebase.firestore();
+      firestoreDoc = db.collection('kanban-boards').doc('shared');
+      scrumboardConnected = true;
+      addSyncLog('info', 'Authenticated as ' + sanitizeText(user.email || user.uid));
+      showApp();
+      updateSidebarUser();
+      if (DB.scrumboardSync.autoSync) {
+        startRealtimeListener();
+      }
+    } else {
+      firestoreDoc = null;
+      scrumboardConnected = false;
+      stopRealtimeListener();
+      updateSidebarUser();
+    }
+    if (currentTab === 'scrumboard') renderScrumboardSync();
+  });
+}
+
+function initFirebase() {
+  const cfg = loadFirebaseConfig();
+  if (!cfg) {
+    // No config saved — show login screen
+    showLoginScreen();
+    return;
+  }
+  // Config exists — init Firebase (auth listener will handle the rest)
+  initFirebaseFromConfig(cfg);
+}
+
 async function signInWithGoogle() {
   if (!_firebaseAuth) {
-    addSyncLog('error', 'Firebase not initialized — check firebase-config.js');
+    addSyncLog('error', 'Firebase not initialized — configure via login screen');
     return;
   }
   try {
@@ -1537,12 +1842,15 @@ async function signOutFirebase() {
     _currentUser = null;
     firestoreDoc = null;
     scrumboardConnected = false;
+    updateSidebarUser();
     addSyncLog('info', 'Signed out');
   } catch (err) {
     addSyncLog('error', 'Sign-out failed: ' + err.message);
   }
   if (currentTab === 'scrumboard') renderScrumboardSync();
 }
+
+// ==================== SCRUMBOARD SYNC ====================
 
 function sanitizeText(str) {
   if (typeof str !== 'string') return '';
@@ -1948,9 +2256,10 @@ function renderScrumboardSync() {
   const authEl = document.getElementById('syncAuthState');
   if (!isConfigured) {
     authEl.innerHTML = `
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-3">
         <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400"></i>
-        <span class="text-xs font-mono text-amber-400">Firebase not configured — copy <code class="bg-zinc-800 px-1 rounded">firebase-config.example.js</code> → <code class="bg-zinc-800 px-1 rounded">firebase-config.js</code> and add your credentials</span>
+        <span class="text-xs font-mono text-amber-400">Firebase not configured</span>
+        <button onclick="showLoginScreen()" class="bg-zinc-700 hover:bg-zinc-600 text-zinc-100 text-xs font-mono px-3 py-1.5 rounded-lg transition-colors">Configure now</button>
       </div>
     `;
   } else if (!isAuthed) {
@@ -2248,9 +2557,19 @@ document.getElementById('globalSearch').addEventListener('input', (e) => {
 // ==================== INIT ====================
 function init() {
   loadDB();
-  renderDashboard();
-  initFirebase();
   lucide.createIcons();
+
+  const cfg = loadFirebaseConfig();
+  if (cfg) {
+    // Config exists — try to init Firebase; auth listener decides what to show
+    initFirebaseFromConfig(cfg);
+    // Show app immediately (auth state will update sidebar)
+    showApp();
+    renderDashboard();
+  } else {
+    // No config — show login screen
+    showLoginScreen();
+  }
 }
 
 // Close modals on escape
