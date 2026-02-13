@@ -14,9 +14,9 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script>
 tailwind.config = {
   theme: {
@@ -1708,6 +1708,8 @@ let scrumboardConnected = false;
 let _lastScrumboardState = null;
 let _firebaseAuth = null;
 let _currentUser = null;
+let _isAdmin = false;
+let _ssoUser = null; // SSO user object from parent postMessage
 
 function loadFirebaseConfig() {
   try {
@@ -2026,6 +2028,111 @@ async function signOutFirebase() {
     addSyncLog('error', 'Sign-out failed: ' + err.message);
   }
   if (currentTab === 'scrumboard') renderScrumboardSync();
+}
+
+// ==================== SSO INTEGRATION (Parent PWA postMessage) ====================
+// Firebase config for the shared project (matches parent portfolio)
+const SSO_FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAqRWVgti-CuXzr5AkhDKmPlu7iA2MQpUg",
+  authDomain: "arnout-s-homelab.firebaseapp.com",
+  projectId: "arnout-s-homelab",
+  storageBucket: "arnout-s-homelab.firebasestorage.app",
+  messagingSenderId: "258011834485",
+  appId: "1:258011834485:web:5afb1efaa303b4dd93f03c",
+};
+
+window.addEventListener('message', (event) => {
+  const data = event.data;
+  if (!data || data.type !== 'admin-auth') return;
+
+  _isAdmin = !!data.isAdmin;
+
+  if (data.sso) {
+    _ssoUser = {
+      uid: data.sso.uid,
+      email: data.sso.email,
+      displayName: data.sso.displayName,
+      photoURL: data.sso.photoURL,
+      idToken: data.sso.idToken,
+    };
+    onSSOUserSignedIn(_ssoUser);
+  } else {
+    _ssoUser = null;
+    onSSOUserSignedOut();
+  }
+});
+
+async function onSSOUserSignedIn(user) {
+  // Ensure Firebase is initialized with the shared project config
+  if (!_firebaseAuth) {
+    const localCfg = loadFirebaseConfig();
+    if (!localCfg) {
+      saveFirebaseConfig(SSO_FIREBASE_CONFIG);
+    }
+    initFirebaseFromConfig(localCfg || SSO_FIREBASE_CONFIG);
+    // Wait briefly for Firebase to initialize
+    await new Promise(r => setTimeout(r, 200));
+  }
+
+  // Sign in to Firebase using the parent's Google ID token
+  if (_firebaseAuth && user.idToken) {
+    try {
+      const credential = firebase.auth.GoogleAuthProvider.credential(user.idToken);
+      await _firebaseAuth.signInWithCredential(credential);
+      addSyncLog('info', 'Signed in via parent SSO as ' + sanitizeText(user.displayName || user.email));
+    } catch (err) {
+      console.warn('SSO sign-in failed, using token for display only:', err.message);
+      addSyncLog('warn', 'SSO credential sign-in failed: ' + err.message);
+      // Fall back to display-only mode: populate _currentUser from SSO data
+      _currentUser = {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        photoURL: user.photoURL,
+      };
+      showApp();
+      updateSidebarUser();
+    }
+  }
+}
+
+async function onSSOUserSignedOut() {
+  if (_firebaseAuth) {
+    try { await _firebaseAuth.signOut(); } catch (e) { /* ignore */ }
+  }
+  _currentUser = null;
+  _isAdmin = false;
+  firestoreDoc = null;
+  scrumboardConnected = false;
+  stopRealtimeListener();
+  updateSidebarUser();
+  addSyncLog('info', 'SSO user signed out');
+}
+
+// ---- Per-user Firestore data (under /users/{uid}/app_data/) ----
+async function saveUserData(key, value) {
+  if (!_currentUser) return;
+  try {
+    const db = firebase.firestore();
+    await db.collection('users').doc(_currentUser.uid)
+      .collection('app_data').doc(key)
+      .set(value, { merge: true });
+  } catch (err) {
+    console.warn('saveUserData failed:', err.message);
+  }
+}
+
+async function loadUserData(key) {
+  if (!_currentUser) return null;
+  try {
+    const db = firebase.firestore();
+    const doc = await db.collection('users').doc(_currentUser.uid)
+      .collection('app_data').doc(key).get();
+    return doc.exists ? doc.data() : null;
+  } catch (err) {
+    console.warn('loadUserData failed:', err.message);
+    return null;
+  }
 }
 
 // ==================== POWER USER SETTINGS ====================
@@ -3174,6 +3281,10 @@ document.getElementById('globalSearch').addEventListener('input', (e) => {
 });
 
 // ==================== INIT ====================
+function isEmbeddedInIframe() {
+  try { return window.self !== window.top; } catch (e) { return true; }
+}
+
 function init() {
   loadDB();
   lucide.createIcons();
@@ -3185,8 +3296,15 @@ function init() {
     // Show app immediately (auth state will update sidebar)
     showApp();
     renderDashboard();
+  } else if (isEmbeddedInIframe()) {
+    // Running in iframe — wait for SSO credentials from parent via postMessage
+    // Pre-init Firebase with the shared project config so we're ready for SSO
+    initFirebaseFromConfig(SSO_FIREBASE_CONFIG);
+    saveFirebaseConfig(SSO_FIREBASE_CONFIG);
+    showApp();
+    renderDashboard();
   } else {
-    // No config — show login screen
+    // Standalone, no config — show login screen
     showLoginScreen();
   }
 }
