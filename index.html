@@ -1980,6 +1980,12 @@ async function signOutFirebase() {
 }
 
 // ==================== SSO INTEGRATION (Parent PWA postMessage) ====================
+// Allowed origins for SSO postMessage authentication
+const ALLOWED_SSO_ORIGINS = [
+  'https://blacksphereindustries.nl',
+  'https://www.blacksphereindustries.nl',
+];
+
 // Firebase config for the shared project (matches parent portfolio)
 const SSO_FIREBASE_CONFIG = {
   apiKey: "AIzaSyAqRWVgti-CuXzr5AkhDKmPlu7iA2MQpUg",
@@ -1991,6 +1997,7 @@ const SSO_FIREBASE_CONFIG = {
 };
 
 window.addEventListener('message', (event) => {
+  if (!ALLOWED_SSO_ORIGINS.includes(event.origin)) return;
   const data = event.data;
   if (!data || data.type !== 'admin-auth') return;
 
