@@ -1671,6 +1671,7 @@ let _firebaseAuth = null;
 let _currentUser = null;
 let _isAdmin = false;
 let _ssoUser = null; // SSO user object from parent postMessage
+let _projectsRegistryUnsub = null; // onSnapshot unsubscribe for shared /projects
 
 function loadFirebaseConfig() {
   try {
@@ -1935,8 +1936,10 @@ function _doFirebaseInit(cfg) {
       console.log('Authenticated as', user.email || user.uid);
       showApp();
       updateSidebarUser();
+      syncProjectsFromRegistry();
     } else {
       // Not signed in — show login screen
+      if (_projectsRegistryUnsub) { _projectsRegistryUnsub(); _projectsRegistryUnsub = null; }
       showLoginScreen();
     }
   });
@@ -2029,6 +2032,7 @@ async function onSSOUserSignedIn(user) {
       const credential = firebase.auth.GoogleAuthProvider.credential(user.idToken);
       await _firebaseAuth.signInWithCredential(credential);
       console.log('Signed in via parent SSO as', user.displayName || user.email);
+      syncProjectsFromRegistry();
     } catch (err) {
       console.warn('SSO sign-in failed, using token for display only:', err.message);
       // Fall back to display-only mode: populate _currentUser from SSO data
@@ -2052,6 +2056,51 @@ async function onSSOUserSignedOut() {
   _isAdmin = false;
   updateSidebarUser();
   console.log('SSO user signed out');
+}
+
+// ---- Shared /projects registry (read from scrum-app) ----
+function syncProjectsFromRegistry() {
+  if (!_currentUser) return;
+  try {
+    if (_projectsRegistryUnsub) _projectsRegistryUnsub();
+    const projectsCol = firebase.firestore().collection('projects');
+    _projectsRegistryUnsub = projectsCol
+      .where('archived', '==', false)
+      .onSnapshot(snapshot => {
+        if (snapshot.empty) return; // keep local projects if registry is empty
+        const registryProjects = [];
+        snapshot.forEach(doc => {
+          const remote = doc.data();
+          // Find matching local project to preserve ERP-specific fields
+          const local = DB.projects.find(p => p.id === remote.id);
+          registryProjects.push({
+            id: remote.id,
+            name: remote.name,
+            client: local ? local.client : '',
+            status: local ? local.status : 'planning',
+            priority: local ? local.priority : 'medium',
+            lead: local ? local.lead : '',
+            startDate: local ? local.startDate : '',
+            deadline: local ? local.deadline : '',
+            progress: local ? local.progress : 0,
+            description: local ? local.description : '',
+            budget: local ? local.budget : 0
+          });
+        });
+        // Merge: registry projects + any local-only projects (not in registry)
+        const registryIds = new Set(registryProjects.map(p => p.id));
+        const localOnly = DB.projects.filter(p => !registryIds.has(p.id));
+        DB.projects = [...registryProjects, ...localOnly];
+        saveDB();
+        console.log('[erp] Synced', registryProjects.length, 'projects from /projects registry');
+        if (currentTab === 'projects') renderProjects();
+        if (currentTab === 'dashboard') renderDashboard();
+      }, err => {
+        console.warn('[erp] Projects registry listener error:', err);
+      });
+  } catch (e) {
+    console.warn('[erp] Failed to sync projects from registry:', e);
+  }
 }
 
 // ---- Per-user Firestore data (under /users/{uid}/app_data/) ----
