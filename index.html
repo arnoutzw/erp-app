@@ -1983,19 +1983,15 @@ async function signOutFirebase() {
 }
 
 // ==================== SSO INTEGRATION (Parent PWA postMessage) ====================
-// Firebase config for the shared project (matches parent portfolio)
-const SSO_FIREBASE_CONFIG = {
-  apiKey: "AIzaSyAqRWVgti-CuXzr5AkhDKmPlu7iA2MQpUg",
-  authDomain: "arnout-s-homelab.firebaseapp.com",
-  projectId: "arnout-s-homelab",
-  storageBucket: "arnout-s-homelab.firebasestorage.app",
-  messagingSenderId: "258011834485",
-  appId: "1:258011834485:web:5afb1efaa303b4dd93f03c",
-};
+// Firebase config received from parent portal postMessage (single source of truth)
+let SSO_FIREBASE_CONFIG = null;
 
 window.addEventListener('message', (event) => {
   const data = event.data;
   if (!data || data.type !== 'admin-auth') return;
+
+  // Use Firebase config from parent portal if available
+  if (data.firebaseConfig) SSO_FIREBASE_CONFIG = data.firebaseConfig;
 
   _isAdmin = !!data.isAdmin;
 
@@ -2018,10 +2014,13 @@ async function onSSOUserSignedIn(user) {
   // Ensure Firebase is initialized with the shared project config
   if (!_firebaseAuth) {
     const localCfg = loadFirebaseConfig();
-    if (!localCfg) {
-      saveFirebaseConfig(SSO_FIREBASE_CONFIG);
+    const cfgToUse = localCfg || SSO_FIREBASE_CONFIG;
+    if (!cfgToUse || !cfgToUse.apiKey) {
+      console.warn('[erp] No Firebase config available yet');
+      return;
     }
-    initFirebaseFromConfig(localCfg || SSO_FIREBASE_CONFIG);
+    if (!localCfg && cfgToUse) saveFirebaseConfig(cfgToUse);
+    initFirebaseFromConfig(cfgToUse);
     // Wait briefly for Firebase to initialize
     await new Promise(r => setTimeout(r, 200));
   }
@@ -2788,9 +2787,8 @@ function init() {
     // Config exists — init Firebase; onAuthStateChanged will show app or login
     initFirebaseFromConfig(cfg);
   } else if (isEmbeddedInIframe()) {
-    // Running in iframe — pre-init Firebase with shared config, wait for SSO
-    initFirebaseFromConfig(SSO_FIREBASE_CONFIG);
-    saveFirebaseConfig(SSO_FIREBASE_CONFIG);
+    // Running in iframe — Firebase config will arrive via postMessage from parent portal
+    // Do nothing here; onSSOUserSignedIn() will init Firebase when SSO message arrives
   } else {
     // Standalone, no config — show login screen
     showLoginScreen();
